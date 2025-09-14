@@ -4,17 +4,22 @@
     "slug": "safispeak",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/logo_new_black.png",
     "scheme": "safispeak",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true
     },
+    "splash": {
+  "image": "./assets/images/splash-icon.png",
+  "resizeMode": "contain",
+  "backgroundColor": "#fff9e9"
+},
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "foregroundImage": "./assets/images/logo_new_black.png",
+        "backgroundColor": "#fff9e9"
       },
       "edgeToEdgeEnabled": true
     },
@@ -29,9 +34,9 @@
         "expo-splash-screen",
         {
           "image": "./assets/images/splash-icon.png",
-          "imageWidth": 200,
+          "imageWidth": 260,
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff"
+          "backgroundColor": "#fff9e9"
         }
       ]
     ],
