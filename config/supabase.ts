@@ -12,11 +12,23 @@ console.log('Environment variables:', {
   supabaseBucket: supabaseBucket
 });
 
+// Validate required environment variables
+if (!supabaseUrl) {
+  throw new Error('EXPO_PUBLIC_SUPABASE_URL is required but not set in environment variables');
+}
+
+if (!supabaseAnonKey) {
+  throw new Error('EXPO_PUBLIC_SUPABASE_ANON_KEY is required but not set in environment variables');
+}
+
 export const SUPABASE_CONFIG = {
   url: supabaseUrl || 'MISSING_ENV_VARIABLE',
   anonKey: supabaseAnonKey || 'MISSING_ENV_VARIABLE',
   bucket: supabaseBucket,
 };
+
+// Export individual variables for authService
+export { supabaseAnonKey, supabaseUrl };
 
 // Instructions for secure setup:
 // 1. Create a .env file in your project root

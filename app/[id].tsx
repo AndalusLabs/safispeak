@@ -2,11 +2,14 @@
 import { createClient } from '@supabase/supabase-js';
 import { Audio } from 'expo-av';
 import { router, useLocalSearchParams } from 'expo-router';
+import * as WebBrowser from 'expo-web-browser';
 import LottieView from 'lottie-react-native';
+import { MotiImage } from 'moti';
 import React, { useEffect, useState } from 'react';
-import { Dimensions, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { AppState, Dimensions, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SUPABASE_CONFIG } from '../config/supabase';
+import { useAuth } from '../contexts/AuthContext';
 import lessons from './lessons';
 
 const { width, height } = Dimensions.get('window');
@@ -17,6 +20,13 @@ const supabase = createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
 
 // Types for words data
 interface Word {
+  id: number;
+  darija: string;
+  audio_file: string;
+}
+
+// Types for phrases data 
+interface Phrase {
   id: number;
   darija: string;
   audio_file: string;
@@ -33,28 +43,133 @@ export default function LessonScreen() {
   const [feedback, setFeedback] = useState<string | null>(null);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [score, setScore] = useState(0);
-  const [lessonCompleted, setLessonCompleted] = useState(false);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [answerChecked, setAnswerChecked] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [words, setWords] = useState<Word[]>([]);
+  const [phrases, setPhrases] = useState<Phrase[]>([]);
+  const [showMotivationScreen, setShowMotivationScreen] = useState(false);
+  const [hasPlayedWinningSound, setHasPlayedWinningSound] = useState(false);
+  const [showSignupModal, setShowSignupModal] = useState(false);
+  
+  // Auth context
+  const { isAuthenticated, user } = useAuth();
 
-  // Fetch words from Supabase
+  // Complete any pending auth sessions
+  useEffect(() => {
+    WebBrowser.maybeCompleteAuthSession();
+  }, []);
+
+  // Listen for auth state changes to handle successful login
+  useEffect(() => {
+    const handleAppStateChange = async (nextAppState: string) => {
+      if (nextAppState === 'active' && showSignupModal) {
+        console.log('App became active, checking auth session...');
+        
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          console.log('Found session after returning to app!');
+          setShowSignupModal(false);
+          setShowMotivationScreen(false);
+          setCurrentQuestion(3);
+          setSelectedAnswer(null);
+          setFeedback(null);
+          setAnswerChecked(false);
+        }
+      }
+    };
+  
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
+    return () => subscription?.remove();
+  }, [showSignupModal]);
+
+  //google login function
+  const handleGoogleLogin = async () => {
+    try {
+      console.log('Starting Google OAuth...');
+      
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: 'https://zgrdjsqvgckpfntwdhri.supabase.co/auth/v1/callback',
+          skipBrowserRedirect: true,
+        }
+      });
+  
+      if (error) {
+        console.log('OAuth error:', error);
+        return;
+      }
+  
+      if (data?.url) {
+        console.log('Opening OAuth URL...');
+        
+         // Use openAuthSessionAsync with Supabase callback
+         const result = await WebBrowser.openAuthSessionAsync(
+           data.url,
+           'https://zgrdjsqvgckpfntwdhri.supabase.co/auth/v1/callback'
+         );
+        
+        console.log('Auth session result:', result);
+        
+        // Check if user completed auth (even if we can't get tokens directly)
+        if (result.type === 'success') {
+          console.log('User completed OAuth, checking session...');
+          
+          // Wait a bit for Supabase to process the callback
+          setTimeout(async () => {
+            const { data: session } = await supabase.auth.getSession();
+            if (session?.session) {
+              console.log('Session found after OAuth!');
+              setShowSignupModal(false);
+              setShowMotivationScreen(false);
+              setCurrentQuestion(3);
+              setSelectedAnswer(null);
+              setFeedback(null);
+              setAnswerChecked(false);
+            } else {
+              console.log('No session found, user may have cancelled');
+            }
+          }, 2000);
+        } else if (result.type === 'cancel') {
+          console.log('User cancelled OAuth');
+        }
+      }
+      
+    } catch (err) {
+      console.log("Google login error:", err);
+    }
+  };
+
+
+
+  // Fetch words and phrases from Supabase
   const fetchWords = async () => {
     try {
-      const { data, error } = await supabase
+      const { data: wordsData, error: wordsError } = await supabase
         .from('words')
         .select('*');
       
-      if (error) {
-        console.log('Error fetching words:', error);
+      if (wordsError) {
+        console.log('Error fetching words:', wordsError);
         return;
       }
       
-      console.log('Fetched words:', data);
-      setWords(data || []);
+      const { data: phrasesData, error: phrasesError } = await supabase
+        .from('phrases')
+        .select('*');
+      
+      if (phrasesError) {
+        console.log('Error fetching phrases:', phrasesError);
+        return;
+      }
+      
+      console.log('Fetched words:', wordsData);
+      console.log('Fetched phrases:', phrasesData);
+      setWords(wordsData || []);
+      setPhrases(phrasesData || []);
     } catch (error) {
-      console.log('Error fetching words:', error);
+      console.log('Error fetching data:', error);
     }
   };
 
@@ -62,6 +177,15 @@ export default function LessonScreen() {
   useEffect(() => {
     fetchWords();
   }, []);
+
+  // Play winning sound when motivation screen appears
+  useEffect(() => {
+    console.log('showMotivationScreen changed:', showMotivationScreen);
+    if (showMotivationScreen) {
+      console.log('Motivation screen is showing, playing winning sound...');
+      playWinningSound();
+    }
+  }, [showMotivationScreen]);
 
   const playSound = async (type: 'correct' | 'wrong') => {
     const sound = new Audio.Sound();
@@ -77,6 +201,26 @@ export default function LessonScreen() {
     }
   };
 
+  const playWinningSound = async () => {
+    if (hasPlayedWinningSound) {
+      console.log('Winning sound already played, skipping...');
+      return;
+    }
+    
+    console.log('Attempting to play winning sound...');
+    const sound = new Audio.Sound();
+    try {
+      console.log('Loading winning.mp3...');
+      await sound.loadAsync(require('../assets/sounds/winning.mp3'));
+      console.log('Playing winning sound...');
+      await sound.playAsync();
+      setHasPlayedWinningSound(true);
+      console.log('Winning sound played successfully!');
+    } catch (error) {
+      console.log('Error playing winning sound:', error);
+    }
+  };
+
 
   const playStimulus = async () => {
     if (isPlaying) return;
@@ -86,27 +230,42 @@ export default function LessonScreen() {
     
     console.log('Looking for stimulus:', currentQ.stimulus);
     console.log('Available words:', words.map(w => w.darija));
+    console.log('Available phrases:', phrases.map(p => p.darija));
     
     try {
-      // Find the word in our words data - try exact match first, then partial match
-      let wordData = words.find(word => word.darija === currentQ.stimulus);
+      let wordData = null;
       
-      // If no exact match, try case-insensitive match
-      if (!wordData) {
-        wordData = words.find(word => 
-          word.darija.toLowerCase() === currentQ.stimulus.toLowerCase()
-        );
+      // For first 3 questions (index 0-2), search in words
+      if (currentQuestion < 3) {
+        wordData = words.find(word => word.darija === currentQ.stimulus);
+        
+        // If no exact match in words, try case-insensitive match
+        if (!wordData) {
+          wordData = words.find(word => 
+            word.darija.toLowerCase() === currentQ.stimulus.toLowerCase()
+          );
+        }
+      } else {
+        // For questions 4-6 (index 3-5), search in phrases
+        wordData = phrases.find(phrase => phrase.darija === currentQ.stimulus);
+        
+        // If no exact match in phrases, try case-insensitive match
+        if (!wordData) {
+          wordData = phrases.find(phrase => 
+            phrase.darija.toLowerCase() === currentQ.stimulus.toLowerCase()
+          );
+        }
+        
+        // If still not found, try partial match in phrases as last resort
+        if (!wordData) {
+          wordData = phrases.find(phrase => 
+            phrase.darija.toLowerCase().includes(currentQ.stimulus.toLowerCase()) ||
+            currentQ.stimulus.toLowerCase().includes(phrase.darija.toLowerCase())
+          );
+        }
       }
       
-      // If still no match, try partial match (for "Salam" -> "Assalamu Alaikoum")
-      if (!wordData) {
-        wordData = words.find(word => 
-          word.darija.toLowerCase().includes(currentQ.stimulus.toLowerCase()) ||
-          currentQ.stimulus.toLowerCase().includes(word.darija.toLowerCase())
-        );
-      }
-      
-      console.log('Found word data:', wordData);
+      console.log('Found word/phrase data:', wordData);
       
       if (wordData && wordData.audio_file) {
         // Build audio URL from Supabase storage with dynamic chapter
@@ -174,7 +333,7 @@ export default function LessonScreen() {
     );
   }
 
-  const handleAnswer = (index: number) => {
+  const handleAnswer = async (index: number) => {
     if (answerChecked) return; // Don't allow changing answer after checking
     
     const currentQ = lesson.questions[currentQuestion];
@@ -182,6 +341,49 @@ export default function LessonScreen() {
     setSelectedAnswer(index);
     setAnswerChecked(false);
     setFeedback(null);
+    
+    // Check if the selected option exists in our words or phrases database and play audio
+    let wordData = words.find(word => 
+      word.darija.toLowerCase() === selectedOption.toLowerCase()
+    );
+    
+    // If not found in words, try phrases
+    if (!wordData) {
+      wordData = phrases.find(phrase => 
+        phrase.darija.toLowerCase() === selectedOption.toLowerCase()
+      );
+    }
+    
+    if (wordData && wordData.audio_file) {
+      try {
+        const chapterFolder = `chapter_${lessonId}`;
+        const audioUrl = `${SUPABASE_CONFIG.url}/storage/v1/object/public/${SUPABASE_CONFIG.bucket}/${chapterFolder}/${wordData.audio_file}`;
+        console.log('Playing audio for selected option:', selectedOption, 'URL:', audioUrl);
+        
+        const sound = new Audio.Sound();
+        await sound.loadAsync({ 
+          uri: audioUrl,
+          headers: {
+            'Accept': 'audio/mpeg, audio/mp3, audio/*',
+          }
+        });
+        
+        await sound.playAsync();
+        console.log('Successfully played audio for selected option');
+        
+        // Clean up after playing
+        setTimeout(async () => {
+          try {
+            await sound.unloadAsync();
+          } catch (unloadError) {
+            console.log('Error unloading sound:', unloadError);
+          }
+        }, 3000);
+        
+      } catch (audioError) {
+        console.log('Error playing audio for selected option:', audioError);
+      }
+    }
   };
 
   const handleCheck = () => {
@@ -202,30 +404,32 @@ export default function LessonScreen() {
   };
 
   const handleNext = () => {
-    if (currentQuestion < lesson.questions.length - 1) {
+    if (currentQuestion === 2) {
+      // After question 3 (index 2), show motivation screen
+      setShowMotivationScreen(true);
+    } else if (currentQuestion < lesson.questions.length - 1) {
       setCurrentQuestion(currentQuestion + 1);
       setSelectedAnswer(null);
       setFeedback(null);
       setAnswerChecked(false);
     } else {
-      completeLesson();
+      // After last question (question 6), navigate to phrases
+      router.push('/phrases');
     }
   };
-  const completeLesson = () => {
-    setLessonCompleted(true);
-  };
   
   
-  if (lessonCompleted) {
+  if (showMotivationScreen) {
     return (
       <View style={styles.container}>
         <View style={[styles.header, { paddingTop: safeTop + 10 }]}>
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
             <Text style={styles.backIcon}>←</Text>
           </TouchableOpacity>
-          <View style={styles.progressContainer}>
-            <Text style={styles.progressText}>Lesson Complete!</Text>
+          <View style={styles.motivationProgressContainer}>
+            <Text style={styles.progressText}>Great Progress!</Text>
           </View>
+          <View style={styles.placeholderSpace} />
         </View>
         
         <ScrollView
@@ -233,40 +437,73 @@ export default function LessonScreen() {
           contentContainerStyle={styles.contentContainerStyle}
           showsVerticalScrollIndicator={false}
         >
-          {/* Logo and Speech Bubble */}
-          <View style={styles.logoAndSpeechContainer}>
-            <Image source={safiLogo} style={styles.mascotImageTiny} resizeMode="contain" fadeDuration={0} />
-            
-            {/* Speech Bubble */}
-            <View style={styles.speechBubbleContainer}>
-              <View style={styles.speechBubble}>
-                <Text style={styles.speechBubbleText}>Great job! You're doing amazing!</Text>
-              </View>
-              <View style={styles.speechTail} />
-              <View style={styles.speechTailBorder} />
-            </View>
+          {/* Mascot centered */}
+          <View style={styles.motivationMascotContainer}>
+            <MotiImage
+              source={safiLogo}
+              style={styles.mascotImageMotivation}
+              resizeMode="contain"
+              from={{
+                translateY: 0,
+                scale: 0.8,
+                opacity: 0.7,
+              }}
+              animate={{
+                translateY: -15,
+                scale: 1,
+                opacity: 1,
+              }}
+              transition={{
+                type: 'timing',
+                duration: 2000,
+                loop: true,
+                repeatReverse: true,
+              }}
+            />
           </View>
 
-          <View style={styles.completionContainer}>
-            <Text style={styles.completionEmoji}>🎉</Text>
-            <Text style={styles.completionTitle}>Lesson Completed!</Text>
-            <Text style={styles.completionScore}>
-              Score: {score}/{lesson.questions.length}
-            </Text>
-            <Text style={styles.completionText}>You finished {lesson.title}! 🚀</Text>
-            <Text style={styles.completionSubtext}>Keep going to improve your Darija!</Text>
+          {/* Speech Bubble centered below mascot */}
+          <View style={styles.motivationSpeechBubbleContainer}>
+            <View style={styles.motivationSpeechBubble}>
+              <Text style={styles.motivationSpeechBubbleText}>
+                Safi! You've mastered your first 3 Darija words.{'\n\n'}Create a free account to save your progress — and let's build on that foundation with useful phrases.
+              </Text>
+            </View>
+            <View style={styles.motivationSpeechTail} />
+            <View style={styles.motivationSpeechTailBorder} />
+          </View>
 
+          <View style={styles.motivationContainer}>
+            <TouchableOpacity
+              style={styles.createAccountButton}
+              onPress={() => {
+                console.log('CREATE FREE ACCOUNT pressed - showing signup screen');
+                setShowMotivationScreen(false); // ✅ Eerst motivation screen sluiten
+                setShowSignupModal(true);       // ✅ Dan signup modal openen
+              }}
+            >
+              <Text style={styles.createAccountButtonText}>CREATE FREE ACCOUNT</Text>
+            </TouchableOpacity>
+            
             <TouchableOpacity
               style={styles.continueButton}
-              onPress={() => router.push('/paywall')}
+              onPress={() => {
+                console.log('Continue without account pressed - going to question 4');
+                setShowMotivationScreen(false);
+                setCurrentQuestion(3); // Go to question 4 (index 3)
+                setSelectedAnswer(null);
+                setFeedback(null);
+                setAnswerChecked(false);
+              }}
             >
-              <Text style={styles.continueButtonText}>Continue</Text>
+              <Text style={styles.continueButtonText}>Continue without account</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
       </View>
     );
   }
+
   
 
   const currentQ = lesson.questions[currentQuestion];
@@ -290,6 +527,15 @@ export default function LessonScreen() {
               ]}
             />
           </View>
+        </View>
+        <View style={styles.xpContainer}>
+          <LottieView
+            source={require('@/assets/animations/star.json')}
+            autoPlay
+            loop={true}
+            style={styles.starIcon}
+          />
+          <Text style={styles.xpText}>{score * 10}</Text>
         </View>
       </View>
 
@@ -442,6 +688,170 @@ export default function LessonScreen() {
         </TouchableOpacity>
       </View>
 
+      {/* SIGNUP SCREEN */}
+      {showSignupModal && (
+        <View style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: '#fff9e9',
+          zIndex: 9999,
+          paddingTop: 60,
+        }}>
+          {/* Header */}
+          <View style={{
+            alignItems: 'center',
+            paddingHorizontal: 20,
+            marginBottom: 40,
+            position: 'relative',
+          }}>
+            <TouchableOpacity 
+              style={{
+                position: 'absolute',
+                right: 20,
+                top: 0,
+                width: 30,
+                height: 30,
+                justifyContent: 'center',
+                alignItems: 'center',
+              }}
+              onPress={() => setShowSignupModal(false)}
+            >
+              <Text style={{ fontSize: 18, color: '#666' }}>✕</Text>
+            </TouchableOpacity>
+            <Text style={{
+              fontSize: 28,
+              fontWeight: '700',
+              color: '#333',
+              marginBottom: 8,
+              fontFamily: 'Nunito_700Bold',
+            }}>
+              Create Free Account
+            </Text>
+            <Text style={{
+              fontSize: 16,
+              color: '#666',
+              textAlign: 'center',
+              fontFamily: 'Nunito_400Regular',
+            }}>
+              Save your progress and continue learning
+            </Text>
+          </View>
+
+          {/* Signup Options */}
+          <View style={{ paddingHorizontal: 20, marginBottom: 40 }}>
+            <TouchableOpacity
+              style={{
+                backgroundColor: '#00A86B',
+                paddingVertical: 18,
+                paddingHorizontal: 20,
+                borderRadius: 16,
+                marginBottom: 16,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.1,
+                shadowRadius: 4,
+                elevation: 3,
+              }}
+              onPress={() => {
+                console.log('Email signup pressed');
+                setShowSignupModal(false);
+                setShowMotivationScreen(false);
+                setCurrentQuestion(3);
+                setSelectedAnswer(null);
+                setFeedback(null);
+                setAnswerChecked(false);
+              }}
+            >
+              <Text style={{
+                color: '#fff',
+                fontSize: 18,
+                fontWeight: '600',
+                textAlign: 'center',
+                fontFamily: 'Nunito_600SemiBold',
+              }}>
+                📧 Sign up with Email
+              </Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={{
+                backgroundColor: '#4285F4',
+                paddingVertical: 18,
+                paddingHorizontal: 20,
+                borderRadius: 16,
+                marginBottom: 16,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.1,
+                shadowRadius: 4,
+                elevation: 3,
+              }}
+              onPress={handleGoogleLogin}
+            >
+              <Text style={{
+                color: '#fff',
+                fontSize: 18,
+                fontWeight: '600',
+                textAlign: 'center',
+                fontFamily: 'Nunito_600SemiBold',
+              }}>
+                🔍 Continue with Google
+              </Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={{
+                backgroundColor: '#000',
+                paddingVertical: 18,
+                paddingHorizontal: 20,
+                borderRadius: 16,
+                marginBottom: 16,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.1,
+                shadowRadius: 4,
+                elevation: 3,
+              }}
+              onPress={() => {
+                console.log('Apple signup pressed');
+                setShowSignupModal(false);
+                setShowMotivationScreen(false);
+                setCurrentQuestion(3);
+                setSelectedAnswer(null);
+                setFeedback(null);
+                setAnswerChecked(false);
+              }}
+            >
+              <Text style={{
+                color: '#fff',
+                fontSize: 18,
+                fontWeight: '600',
+                textAlign: 'center',
+                fontFamily: 'Nunito_600SemiBold',
+              }}>
+                🍎 Continue with Apple
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Terms */}
+          <View style={{ paddingHorizontal: 20, alignItems: 'center' }}>
+            <Text style={{
+              fontSize: 12,
+              color: '#666',
+              textAlign: 'center',
+              lineHeight: 18,
+              fontFamily: 'Nunito_400Regular',
+            }}>
+              By creating an account, you agree to our Terms of Service and Privacy Policy
+            </Text>
+          </View>
+        </View>
+      )}
+
     </View>
   );
 }
@@ -471,23 +881,135 @@ const styles = StyleSheet.create({
     color: '#333',
     fontFamily: 'Nunito_600SemiBold'
   },
-  progressContainer: { flex: 1, alignItems: 'center' },
+  progressContainer: { 
+    flex: 1, 
+    alignItems: 'center',
+  },
+  motivationProgressContainer: { 
+    flex: 1, 
+    alignItems: 'center',
+  },
+  placeholderSpace: {
+    width: 55, // Same width as back button to balance the layout
+  },
+  
+  // Signup Screen Styles
+  signupScreen: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: '#fff9e9',
+    zIndex: 9999,
+    paddingTop: 60,
+  },
+  signupHeader: {
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    marginBottom: 40,
+    position: 'relative',
+  },
+  signupCloseButton: {
+    position: 'absolute',
+    right: 20,
+    top: 0,
+    width: 30,
+    height: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  signupCloseButtonText: {
+    fontSize: 18,
+    color: '#666',
+  },
+  signupTitle: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#333',
+    marginBottom: 8,
+    fontFamily: 'Nunito_700Bold',
+  },
+  signupSubtitle: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    fontFamily: 'Nunito_400Regular',
+  },
+  signupOptions: {
+    paddingHorizontal: 20,
+    marginBottom: 40,
+  },
+  signupOptionButton: {
+    backgroundColor: '#00A86B',
+    paddingVertical: 18,
+    paddingHorizontal: 20,
+    borderRadius: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  googleButton: {
+    backgroundColor: '#4285F4',
+  },
+  appleButton: {
+    backgroundColor: '#000',
+  },
+  signupOptionText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '600',
+    textAlign: 'center',
+    fontFamily: 'Nunito_600SemiBold',
+  },
+  signupTerms: {
+    paddingHorizontal: 20,
+    alignItems: 'center',
+  },
+  signupTermsText: {
+    fontSize: 12,
+    color: '#666',
+    textAlign: 'center',
+    lineHeight: 18,
+    fontFamily: 'Nunito_400Regular',
+  },
   progressText: { 
     fontSize: 16, 
     color: '#666', 
     marginBottom: 10,
     fontFamily: 'Nunito_400Regular'
   },
+  xpContainer: {
+    flexDirection: 'column',
+    alignItems: 'center',
+    marginLeft: 15,
+    justifyContent: 'flex-start',
+    paddingTop: 10,
+  },
+  starIcon: {
+    width: 60,
+    height: 60,
+    marginBottom: 2,
+  },
+  xpText: {
+    fontSize: 16,
+    color: '#333',
+    fontFamily: 'Nunito_600SemiBold',
+    fontWeight: '600',
+  },
   progressBar: {
-    width: '100%',
-    height: 8,
+    width: '80%',
+    height: 6,
     backgroundColor: '#E5E5E5',
-    borderRadius: 4,
+    borderRadius: 3,
     overflow: 'hidden',
   },
   progressFill: { height: '100%', backgroundColor: '#00A86B', borderRadius: 4 },
   content: { flex: 1, paddingHorizontal: 20 },
-  contentContainerStyle: { paddingTop: 20, paddingBottom: 24, flexGrow: 1 },
+  contentContainerStyle: { paddingTop: 20, paddingBottom: 100, flexGrow: 1 },
   
   // Logo and Speech Bubble Styles (matching onboarding)
   logoAndSpeechContainer: {
@@ -561,8 +1083,8 @@ const styles = StyleSheet.create({
   },
   speechTail: {
     position: 'absolute',
-    left: -10,
-    top: 20,
+    left: -14,
+    top: 25,
     width: 0,
     height: 0,
     borderTopWidth: 10,
@@ -571,11 +1093,12 @@ const styles = StyleSheet.create({
     borderTopColor: 'transparent',
     borderBottomColor: 'transparent',
     borderRightColor: '#FFFFFF',
+    zIndex: 2,
   },
   speechTailBorder: {
     position: 'absolute',
-    left: -12,
-    top: 19,
+    left: -16,
+    top: 24,
     width: 0,
     height: 0,
     borderTopWidth: 11,
@@ -584,8 +1107,12 @@ const styles = StyleSheet.create({
     borderTopColor: 'transparent',
     borderBottomColor: 'transparent',
     borderRightColor: 'rgba(0,0,0,0.06)',
+    zIndex: 1,
   },
-  optionsContainer: { width: '100%' },
+  optionsContainer: { 
+    width: '100%',
+    marginTop: -20,
+  },
   optionsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -626,6 +1153,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 20,
+    marginBottom: 20,
     paddingHorizontal: 20,
     paddingVertical: 15,
     borderRadius: 12,
@@ -651,42 +1179,6 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     flex: 1,
   },
-  completionContainer: { 
-    flex: 1, 
-    justifyContent: 'center', 
-    alignItems: 'center', 
-    padding: 20,
-    marginTop: 20
-  },
-  completionEmoji: { fontSize: 80, marginBottom: 20 },
-  completionTitle: { 
-    fontSize: 32, 
-    fontWeight: 'bold', 
-    color: '#333', 
-    marginBottom: 15,
-    fontFamily: 'Nunito_800ExtraBold'
-  },
-  completionScore: { 
-    fontSize: 24, 
-    color: '#00A86B', 
-    fontWeight: '600', 
-    marginBottom: 20,
-    fontFamily: 'Nunito_700Bold'
-  },
-  completionText: { 
-    fontSize: 18, 
-    color: '#666', 
-    textAlign: 'center', 
-    marginBottom: 10,
-    fontFamily: 'Nunito_400Regular'
-  },
-  completionSubtext: { 
-    fontSize: 16, 
-    color: '#999', 
-    textAlign: 'center', 
-    fontStyle: 'italic',
-    fontFamily: 'Nunito_400Regular'
-  },
   errorText: { 
     fontSize: 20, 
     color: 'red', 
@@ -694,10 +1186,10 @@ const styles = StyleSheet.create({
     marginTop: 100,
     fontFamily: 'Nunito_600SemiBold'
   },
-  continueButton: {
-    marginTop: 30,
+  createAccountButton: {
+    marginTop: 10,
     backgroundColor: '#00A86B',
-    paddingVertical: 15,
+    paddingVertical: 18,
     paddingHorizontal: 40,
     borderRadius: 16,
     shadowColor: '#000',
@@ -706,19 +1198,38 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
-  continueButtonText: {
+  createAccountButtonText: {
     color: '#fff',
     fontSize: 18,
     fontWeight: '700',
     textAlign: 'center',
     fontFamily: 'Nunito_700Bold'
   },
+  continueButton: {
+    marginTop: 15,
+    backgroundColor: '#E0E0E0',
+    paddingVertical: 15,
+    paddingHorizontal: 40,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  continueButtonText: {
+    color: '#666',
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center',
+    fontFamily: 'Nunito_600SemiBold'
+  },
   
   // Check/Next Button Styles
   buttonContainer: {
     paddingHorizontal: 20,
     paddingBottom: 30,
-    paddingTop: 30,
+    paddingTop: 10,
   },
   checkButton: {
     backgroundColor: '#00A86B',
@@ -753,5 +1264,82 @@ const styles = StyleSheet.create({
   },
   checkButtonTextDisabled: {
     color: '#999',
+  },
+  
+  // Motivation Screen Styles
+  motivationMascotContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+    marginTop: 20,
+  },
+  mascotImageMotivation: {
+    width: 180,
+    height: 180,
+  },
+  motivationSpeechBubbleContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+    marginTop: 5,
+    marginBottom: 20,
+    position: 'relative',
+  },
+  motivationSpeechBubble: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    paddingHorizontal: 25,
+    paddingVertical: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    maxWidth: '90%',
+  },
+  motivationSpeechBubbleText: {
+    fontSize: 16,
+    color: '#333',
+    fontFamily: 'Nunito_600SemiBold',
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  motivationSpeechTail: {
+    position: 'absolute',
+    top: -8,
+    left: '55%',
+    marginLeft: -8,
+    width: 0,
+    height: 0,
+    borderLeftWidth: 8,
+    borderRightWidth: 8,
+    borderBottomWidth: 8,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderBottomColor: '#FFFFFF',
+    zIndex: 2,
+  },
+  motivationSpeechTailBorder: {
+    position: 'absolute',
+    top: -11,
+    left: '55%',
+    marginLeft: -11,
+    width: 0,
+    height: 0,
+    borderLeftWidth: 11,
+    borderRightWidth: 11,
+    borderBottomWidth: 11,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderBottomColor: 'rgba(0,0,0,0.06)',
+    zIndex: 1,
+  },
+  motivationContainer: { 
+    flex: 1, 
+    justifyContent: 'flex-start', 
+    alignItems: 'center', 
+    padding: 20,
+    marginTop: 20,
+    paddingTop: 40,
   },
 });
