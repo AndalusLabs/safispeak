@@ -1,5 +1,5 @@
-import { Nunito_400Regular, Nunito_600SemiBold, Nunito_700Bold, Nunito_800ExtraBold, useFonts } from '@expo-google-fonts/nunito';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
@@ -11,10 +11,8 @@ import { AuthProvider } from '../contexts/AuthContext';
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const [loaded] = useFonts({
-    Nunito_400Regular,
-    Nunito_600SemiBold, 
-    Nunito_700Bold,
-    Nunito_800ExtraBold,
+    'Baloo2-Medium': require('../assets/fonts/Baloo2-Medium.ttf'),
+    'Baloo2-Bold': require('../assets/fonts/Baloo2-Bold.ttf'),
   });
 
   if (!loaded) {
@@ -30,9 +28,7 @@ export default function RootLayout() {
             <Stack.Screen name="index" options={{ headerShown: false }} />
             <Stack.Screen name="welcome" options={{ headerShown: false }} />
             <Stack.Screen name="onboarding-flow" options={{ headerShown: false }} />
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="[id]" options={{ headerShown: false }} />
-            <Stack.Screen name="paywall" options={{ headerShown: false }} />
+            <Stack.Screen name="lessons/[id]" options={{ headerShown: false }} />
             <Stack.Screen name="+not-found" />
           </Stack>
           <StatusBar style="auto" />

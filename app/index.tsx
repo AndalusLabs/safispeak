@@ -103,7 +103,7 @@ export default function IntroScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff9e9',
+    backgroundColor: '#FFFFFF',
   },
   content: {
     flex: 1,

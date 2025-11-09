@@ -9,17 +9,18 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.andaluslabs.safispeak"
     },
     "splash": {
-  "image": "./assets/images/splash-icon.png",
-  "resizeMode": "contain",
-  "backgroundColor": "#fff9e9"
-},
+      "image": "./assets/images/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#FFFFFF"
+    },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/logo_new_black.png",
-        "backgroundColor": "#fff9e9"
+        "backgroundColor": "#FFFFFF"
       },
       "edgeToEdgeEnabled": true
     },
@@ -27,7 +28,8 @@
       "bundler": "metro",
       "output": "static",
       "favicon": "./assets/images/favicon.png"
-    }, "plugins": [
+    },
+    "plugins": [
       "expo-router",
       [
         "expo-splash-screen",
@@ -35,7 +37,7 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 260,
           "resizeMode": "contain",
-          "backgroundColor": "#fff9e9"
+          "backgroundColor": "#FFFFFF"
         }
       ]
     ],

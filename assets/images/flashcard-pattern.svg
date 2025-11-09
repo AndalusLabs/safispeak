@@ -1,0 +1,16 @@
+<svg width="384" height="600" viewBox="0 0 384 600" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="384" height="600" fill="#FCD34D" rx="8" />
+  
+  <!-- Large circle - partially outside top-left -->
+  <circle cx="125" cy="100" r="200" fill="white" fill-opacity="0.08" />
+  
+  <!-- Medium circle - main focal point -->
+  <circle cx="459" cy="300" r="150" fill="white" fill-opacity="0.06" />
+  
+  <!-- Small circle - bottom area -->
+  <circle cx="125" cy="645" r="75" fill="white" fill-opacity="0.10" />
+  
+  <!-- Extra large circle - partially outside bottom-right -->
+  <circle cx="559" cy="775" r="175" fill="white" fill-opacity="0.05" />
+</svg>

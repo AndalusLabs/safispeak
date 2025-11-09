@@ -12,7 +12,7 @@ interface AuthContextType {
   refreshProfile: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<AuthContextType | null>(null);
 
 interface AuthProviderProps {
   children: ReactNode;
@@ -55,7 +55,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const { user: currentUser, error } = await AuthService.getCurrentUser();
       if (error) {
         // No active session - this is normal for first-time users
-        console.log('No active session found:', error.message);
+        console.log('No active session found:', error);
         return;
       }
       
@@ -96,7 +96,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setLoading(true);
       const { data, error } = await AuthService.signUpWithEmail(email, password);
       if (error) {
-        return { success: false, error: error.message };
+        return { success: false, error: (error as any).message || 'Unknown error' };
       }
       return { success: true };
     } catch (error: any) {
@@ -111,7 +111,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setLoading(true);
       const { data, error } = await AuthService.signUpWithEmail(email, password);
       if (error) {
-        return { success: false, error: error.message };
+        return { success: false, error: (error as any).message || 'Unknown error' };
       }
       return { success: true };
     } catch (error: any) {
@@ -156,7 +156,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
 export function useAuth() {
   const context = useContext(AuthContext);
-  if (context === undefined) {
+  if (context === null) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;

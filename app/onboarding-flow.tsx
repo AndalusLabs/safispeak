@@ -95,7 +95,7 @@ export default function OnboardingFlowScreen() {
         setCurrentStep('intro-first-lesson');
         break;
                case 'intro-first-lesson':
-           router.push('/1');
+           router.push('/lessons/1');
            break;
     }
   };
@@ -130,7 +130,9 @@ export default function OnboardingFlowScreen() {
         setCurrentStep('encouragement');
         break;
       default:
-        router.back();
+        // Don't use router.back() as it can cause "lesson not found" errors
+        // Instead, just stay on the current step or go to intro
+        setCurrentStep('intro');
         break;
     }
   };
@@ -617,7 +619,7 @@ export default function OnboardingFlowScreen() {
                  <View style={styles.startLessonContainer}>
                                        <TouchableOpacity
                       style={styles.startLessonButton}
-                      onPress={() => router.push('/1')}
+                      onPress={() => router.push('/lessons/1')}
                     >
                      <Text style={styles.startLessonButtonText}>
                        START LESSON
@@ -682,7 +684,7 @@ export default function OnboardingFlowScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff9e9',
+    backgroundColor: '#FFFFFF',
   },
 
   headerRow: { flexDirection: 'row', 
@@ -777,14 +779,14 @@ const styles = StyleSheet.create({
   },
   speechText: {
     fontSize: 20,
-    fontFamily: 'Nunito_800ExtraBold',
+    fontFamily: 'Baloo2-Medium',
     color: '#333',
     textAlign: 'left',
     lineHeight: 28,
   },
   speechTextSmall: {
     fontSize: 16,
-    fontFamily: 'Nunito_800ExtraBold',
+    fontFamily: 'Baloo2-Medium',
     color: '#333',
     textAlign: 'left',
     lineHeight: 22,
@@ -807,7 +809,7 @@ const styles = StyleSheet.create({
   },
   speechTextTiny: {
     fontSize: 14,
-    fontFamily: 'Nunito_800ExtraBold',
+    fontFamily: 'Baloo2-Medium',
     color: '#333',
     lineHeight: 18,
   },
@@ -875,14 +877,14 @@ speechTailTopBorder: {
   },
   title: {
     fontSize: 32,
-    fontFamily: 'Nunito_800ExtraBold',
+    fontFamily: 'Baloo2-Medium',
     color: '#333',
     textAlign: 'center',
     marginBottom: 15,
   },
   subtitle: {
     fontSize: 18,
-    fontFamily: 'Nunito_400Regular',
+    fontFamily: 'Baloo2-Medium',
     color: '#666',
     textAlign: 'center',
     lineHeight: 24,
@@ -892,7 +894,7 @@ speechTailTopBorder: {
   },
   question: {
     fontSize: 28,
-    fontFamily: 'Nunito_800ExtraBold',
+    fontFamily: 'Baloo2-Bold',
     color: '#333',
     textAlign: 'center',
   },
@@ -921,7 +923,7 @@ speechTailTopBorder: {
   },
   optionText: {
     fontSize: 14,
-    fontFamily: 'Nunito_600SemiBold',
+    fontFamily: 'Baloo2-Medium',
     color: '#333',
     textAlign: 'center',
   },
@@ -947,7 +949,7 @@ speechTailTopBorder: {
   },
   levelOptionText: {
     fontSize: 15,
-    fontFamily: 'Nunito_600SemiBold',
+    fontFamily: 'Baloo2-Medium',
     color: '#333',
     textAlign: 'center',
     marginBottom: 6,
@@ -1006,7 +1008,7 @@ speechTailTopBorder: {
   },
   motivationText: {
     fontSize: 16,
-    fontFamily: 'Nunito_600SemiBold',
+    fontFamily: 'Baloo2-Medium',
     color: '#333',
     flex: 1,
   },
@@ -1028,9 +1030,9 @@ speechTailTopBorder: {
     backgroundColor: '#00A86B',
   },
   checkmark: {
-    color: '#fff9e9',
+    color: '#FFFFFF',
     fontSize: 14,
-    fontFamily: 'Nunito_700Bold',
+    fontFamily: 'Baloo2-Medium',
   },
   bottomContainer: {
     paddingHorizontal: 30,
@@ -1053,8 +1055,8 @@ speechTailTopBorder: {
   },
      nextButtonText: {
      fontSize: 16,
-     fontFamily: 'Nunito_700Bold',
-     color: '#fff9e9',
+     fontFamily: 'Baloo2-Bold',
+     color: '#FFFFFF',
      textAlign: 'center',
      letterSpacing: 1,
    },
@@ -1076,14 +1078,14 @@ speechTailTopBorder: {
    },
    notificationTitle: {
      fontSize: 18,
-     fontFamily: 'Nunito_700Bold',
+     fontFamily: 'Baloo2-Medium',
      color: '#333',
      marginBottom: 8,
      textAlign: 'center',
    },
    notificationSubtitle: {
      fontSize: 14,
-     fontFamily: 'Nunito_400Regular',
+     fontFamily: 'Baloo2-Medium',
      color: '#666',
      textAlign: 'center',
      lineHeight: 20,
@@ -1119,7 +1121,7 @@ speechTailTopBorder: {
   },
   
   notificationButtonTextPrimary: {
-    color: '#fff9e9',
+    color: '#FFFFFF',
   },
   
   notificationButtonTextSecondary: {
@@ -1154,7 +1156,7 @@ speechTailTopBorder: {
     },
     encouragementText: {
       fontSize: 16,
-      fontFamily: 'Nunito_600SemiBold',
+      fontFamily: 'Baloo2-Medium',
       color: '#333',
       flex: 1,
     },
@@ -1220,8 +1222,8 @@ speechTailTopBorder: {
      },
      startLessonButtonText: {
        fontSize: 18,
-       fontFamily: 'Nunito_700Bold',
-       color: '#fff9e9',
+       fontFamily: 'Baloo2-Bold',
+       color: '#FFFFFF',
        textAlign: 'center',
        letterSpacing: 1,
      },

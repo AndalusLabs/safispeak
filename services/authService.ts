@@ -38,7 +38,7 @@ export class AuthService {
         email,
         password,
         options: {
-          emailRedirectTo: undefined, // We'll handle redirects in the app
+          emailRedirectTo: 'https://safispeak.app/auth/callback', // We'll handle redirects in the app
         },
       });
 
@@ -62,7 +62,7 @@ export class AuthService {
       const { data, error } = await supabase.auth.signInWithOtp({
         email,
         options: {
-          emailRedirectTo: undefined, // We'll handle redirects in the app
+          emailRedirectTo: 'https://safispeak.app/auth/callback', // We'll handle redirects in the app
         },
       });
 
@@ -80,7 +80,7 @@ export class AuthService {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: undefined, // We'll handle redirects in the app
+          redirectTo: 'https://safispeak.app/auth/callback', // We'll handle redirects in the app
         },
       });
 
@@ -98,7 +98,7 @@ export class AuthService {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'apple',
         options: {
-          redirectTo: undefined, // We'll handle redirects in the app
+          redirectTo: 'https://safispeak.app/auth/callback', // We'll handle redirects in the app
         },
       });
 

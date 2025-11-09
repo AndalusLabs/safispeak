@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import * as WebBrowser from 'expo-web-browser';
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Dimensions, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 const { width } = Dimensions.get('window');
@@ -10,134 +10,48 @@ const supabase = createClient(
   process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-interface SignupModalProps {
+interface SigninModalProps {
   visible: boolean;
   onClose: () => void;
-  onSuccess: (username: string) => void;
+  onSuccess: () => void;
 }
 
-const SignupModal: React.FC<SignupModalProps> = ({ visible, onClose, onSuccess }) => {
+const SigninModal: React.FC<SigninModalProps> = ({ visible, onClose, onSuccess }) => {
   const [email, setEmail] = useState('');
-  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [usernameError, setUsernameError] = useState('');
   const [emailError, setEmailError] = useState('');
-  const [isCheckingUsername, setIsCheckingUsername] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Generate suggested username from email
-  useEffect(() => {
-    if (email && !username) {
-      const suggestedUsername = email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '');
-      setUsername(suggestedUsername);
-    }
-  }, [email]);
-
-  // Check username availability
-  const checkUsernameAvailability = async (usernameToCheck: string) => {
-    if (!usernameToCheck.trim()) {
-      setUsernameError('');
-      return;
-    }
-
-    setIsCheckingUsername(true);
-    setUsernameError('');
-
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('username')
-        .eq('username', usernameToCheck)
-        .single();
-
-      if (error && error.code !== 'PGRST116') {
-        console.log('Error checking username:', error);
-        setUsernameError('Error checking username availability');
-        return;
-      }
-
-      if (data) {
-        setUsernameError('Username is already taken.');
-      } else {
-        setUsernameError('');
-      }
-    } catch (error) {
-      console.log('Error checking username:', error);
-      setUsernameError('Error checking username availability');
-    } finally {
-      setIsCheckingUsername(false);
-    }
-  };
-
-  // Debounced username check
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      if (username) {
-        checkUsernameAvailability(username);
-      }
-    }, 500);
-
-    return () => clearTimeout(timeoutId);
-  }, [username]);
-
-  const handleEmailSignup = async () => {
-    if (!email || !username || !password) {
-      return;
-    }
-
-    if (password.length < 6) {
-      return;
-    }
-
-    if (usernameError) {
+  const handleEmailSignin = async () => {
+    if (!email || !password) {
       return;
     }
 
     setIsSubmitting(true);
     setEmailError('');
-    setUsernameError('');
 
     try {
-      const { data, error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) {
-        if (error.message.includes('already registered')) {
-          setEmailError('Email already in use. Please use a different email address.');
+        if (error.message.includes('Invalid login credentials')) {
+          setEmailError('Invalid email or password. Please try again.');
         } else {
-          setEmailError('Error creating account. Please try again.');
+          setEmailError('Error signing in. Please try again.');
         }
         return;
       }
 
       if (data.user) {
-        // Insert profile with username
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert({
-            id: data.user.id,
-            username: username,
-            display_name: username,
-          });
-
-        if (profileError) {
-          console.log('Profile creation error:', profileError);
-          if (profileError.message.includes('duplicate key value')) {
-            setEmailError('Email already in use. Please use a different email address.');
-          } else {
-            setEmailError('Error creating profile. Please try again.');
-          }
-          return;
-        }
-
-        onSuccess(username);
+        onSuccess();
         onClose();
       }
     } catch (error) {
-      console.log('Signup error:', error);
-      setEmailError('Error creating account. Please try again.');
+      console.log('Signin error:', error);
+      setEmailError('Error signing in. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -189,7 +103,7 @@ const SignupModal: React.FC<SignupModalProps> = ({ visible, onClose, onSuccess }
               console.log('Error setting session:', sessionError);
             } else {
               console.log('Session set successfully!');
-              onSuccess('Google User');
+              onSuccess();
               onClose();
             }
           }
@@ -203,16 +117,16 @@ const SignupModal: React.FC<SignupModalProps> = ({ visible, onClose, onSuccess }
   if (!visible) return null;
 
   return (
-    <View style={styles.signupModal}>
-      <ScrollView style={styles.signupScrollView} showsVerticalScrollIndicator={false}>
-        <View style={styles.signupScrollContent}>
+    <View style={styles.signinModal}>
+      <ScrollView style={styles.signinScrollView} showsVerticalScrollIndicator={false}>
+        <View style={styles.signinScrollContent}>
           {/* Header */}
-          <View style={styles.signupHeader}>
-            <TouchableOpacity onPress={onClose} style={styles.signupCloseButton}>
-              <Text style={styles.signupCloseText}>✕</Text>
+          <View style={styles.signinHeader}>
+            <TouchableOpacity onPress={onClose} style={styles.signinCloseButton}>
+              <Text style={styles.signinCloseText}>✕</Text>
             </TouchableOpacity>
-            <Text style={styles.signupTitle}>Sign Up</Text>
-            <Image source={require('@/assets/images/logo_new_black.png')} style={styles.signupTitleMascot} />
+            <Text style={styles.signinTitle}>Sign In</Text>
+            <Image source={require('@/assets/images/logo_new_black.png')} style={styles.signinTitleMascot} />
           </View>
 
           {/* Email Form */}
@@ -233,27 +147,10 @@ const SignupModal: React.FC<SignupModalProps> = ({ visible, onClose, onSuccess }
               </View>
 
               <View style={styles.emailFormField}>
-                <Text style={styles.emailFormLabel}>Username *</Text>
-                <TextInput
-                  style={styles.emailFormInput}
-                  placeholder="Choose a username"
-                  value={username}
-                  onChangeText={setUsername}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                />
-                {isCheckingUsername ? (
-                  <Text style={styles.checkingText}>Checking availability...</Text>
-                ) : usernameError ? (
-                  <Text style={styles.errorText}>{usernameError}</Text>
-                ) : null}
-              </View>
-
-              <View style={styles.emailFormField}>
                 <Text style={styles.emailFormLabel}>Password *</Text>
                 <TextInput
                   style={styles.emailFormInput}
-                  placeholder="Minimum 6 characters"
+                  placeholder="Enter your password"
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry
@@ -266,20 +163,20 @@ const SignupModal: React.FC<SignupModalProps> = ({ visible, onClose, onSuccess }
             <TouchableOpacity
               style={[
                 styles.emailFormSubmitButton,
-                (!email || !username || !password || password.length < 6 || usernameError || isSubmitting) &&
+                (!email || !password || isSubmitting) &&
                 styles.emailFormSubmitButtonDisabled
               ]}
-              onPress={handleEmailSignup}
-              disabled={!email || !username || !password || password.length < 6 || !!usernameError || isSubmitting}
+              onPress={handleEmailSignin}
+              disabled={!email || !password || isSubmitting}
             >
               <Text style={styles.emailFormSubmitButtonText}>
-                {isSubmitting ? 'Creating Account...' : 'Create Account'}
+                {isSubmitting ? 'Signing In...' : 'Sign In'}
               </Text>
             </TouchableOpacity>
           </View>
 
           {/* Divider */}
-          <View style={styles.signupDivider}>
+          <View style={styles.signinDivider}>
             <View style={styles.dividerLine} />
             <Text style={styles.dividerText}>Or</Text>
             <View style={styles.dividerLine} />
@@ -288,13 +185,13 @@ const SignupModal: React.FC<SignupModalProps> = ({ visible, onClose, onSuccess }
           {/* Google Button */}
           <Pressable
             style={({ pressed }) => [
-              styles.googleSignupButton,
+              styles.googleSigninButton,
               { opacity: pressed ? 0.8 : 1, transform: [{ scale: pressed ? 0.98 : 1 }] },
             ]}
             onPress={handleGoogleLogin}
           >
-            <Image source={require('@/assets/images/google_light_login.png')} style={styles.googleSignupLogo} resizeMode="contain" />
-            <Text style={styles.googleSignupButtonText}>Continue with Google</Text>
+            <Image source={require('@/assets/images/google_light_login.png')} style={styles.googleSigninLogo} resizeMode="contain" />
+            <Text style={styles.googleSigninButtonText}>Continue with Google</Text>
           </Pressable>
         </View>
       </ScrollView>
@@ -303,7 +200,7 @@ const SignupModal: React.FC<SignupModalProps> = ({ visible, onClose, onSuccess }
 };
 
 const styles = StyleSheet.create({
-  signupModal: {
+  signinModal: {
     position: 'absolute',
     top: 0,
     left: 0,
@@ -314,7 +211,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
   },
-  signupScrollView: {
+  signinScrollView: {
     backgroundColor: '#FFFFFF',
     borderRadius: 20,
     maxHeight: '90%',
@@ -329,17 +226,17 @@ const styles = StyleSheet.create({
     shadowRadius: 20,
     elevation: 10,
   },
-  signupScrollContent: {
+  signinScrollContent: {
     padding: 20,
   },
-  signupHeader: {
+  signinHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 20,
     position: 'relative',
   },
-  signupCloseButton: {
+  signinCloseButton: {
     position: 'absolute',
     left: 0,
     top: 0,
@@ -348,17 +245,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  signupCloseText: {
+  signinCloseText: {
     fontSize: 18,
     color: '#666',
   },
-  signupTitle: {
+  signinTitle: {
     fontSize: 24,
     fontFamily: 'Baloo2-Bold',
     color: '#00A86B',
     textAlign: 'center',
   },
-  signupTitleMascot: {
+  signinTitleMascot: {
     width: 40,
     height: 40,
     marginLeft: 10,
@@ -410,13 +307,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Baloo2-Medium',
     marginTop: 5,
   },
-  checkingText: {
-    color: '#666',
-    fontSize: 14,
-    fontFamily: 'Baloo2-Medium',
-    marginTop: 5,
-  },
-  signupDivider: {
+  signinDivider: {
     flexDirection: 'row',
     alignItems: 'center',
     marginVertical: 20,
@@ -432,7 +323,7 @@ const styles = StyleSheet.create({
     color: '#666666',
     fontFamily: 'Baloo2-Medium',
   },
-  googleSignupButton: {
+  googleSigninButton: {
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#E0E0E0',
@@ -444,12 +335,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  googleSignupLogo: {
+  googleSigninLogo: {
     width: 20,
     height: 20,
     marginRight: 12,
   },
-  googleSignupButtonText: {
+  googleSigninButtonText: {
     color: '#000000',
     fontSize: 16,
     fontWeight: '600',
@@ -457,4 +348,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default SignupModal;
+export default SigninModal;

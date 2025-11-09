@@ -21,7 +21,7 @@ export default function WelcomeScreen() {
   };
 
   const handleSignIn = () => {
-    router.push('/lesson');
+    router.push('/lessons/1?showSignin=true');
   };
 
   return (
@@ -64,7 +64,7 @@ export default function WelcomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff9e9' },
+  container: { flex: 1, backgroundColor: '#FFFFFF' },
   content: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 40 },
   illustrationContainer: { alignItems: 'center', marginBottom: 60 },
   logoContainer: { marginBottom: 40 },
@@ -73,12 +73,12 @@ const styles = StyleSheet.create({
   textContainer: { alignItems: 'center' },
   title: {
     fontSize: 42,
-    fontFamily: 'Nunito_800ExtraBold',
+    fontFamily: 'Baloo 2',
     color: '#00A86B',
     marginBottom: 10,
     letterSpacing: -1,
   },
-  subtitle: { fontSize: 18, fontFamily: 'Nunito_400Regular', color: '#777777', textAlign: 'center' },
+  subtitle: { fontSize: 18, fontFamily: 'Baloo 2', color: '#777777', textAlign: 'center' },
 
   buttonContainer: { paddingHorizontal: 30, paddingBottom: 40 },
   getStartedButton: {
@@ -95,7 +95,7 @@ const styles = StyleSheet.create({
   getStartedButtonText: {
     color: 'white',
     fontSize: 16,
-    fontFamily: 'Nunito_700Bold',
+    fontFamily: 'Baloo 2',
     textAlign: 'center',
     letterSpacing: 0.5,
   },
@@ -109,7 +109,7 @@ const styles = StyleSheet.create({
   signInButtonText: {
     color: '#1CB0F6',
     fontSize: 16,
-    fontFamily: 'Nunito_700Bold',
+    fontFamily: 'Baloo 2',
     textAlign: 'center',
     letterSpacing: 0.5,
   },
