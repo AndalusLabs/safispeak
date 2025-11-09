@@ -22,7 +22,8 @@
         "foregroundImage": "./assets/images/logo_new_black.png",
         "backgroundColor": "#FFFFFF"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.andaluslabs.safispeak"
     },
     "web": {
       "bundler": "metro",

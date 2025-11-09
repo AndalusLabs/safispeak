@@ -14,13 +14,29 @@ interface Question {
   explanation: string;
 }
 
+interface Word {
+  id: number;
+  darija: string;
+  audio_file: string;
+}
+
+interface Phrase {
+  id: number;
+  darija: string;
+  audio_file: string;
+}
+
 interface QuizScreenProps {
   question: Question;
   questionNumber: number;
   totalQuestions: number;
   onAnswer: (selectedIndex: number) => void;
+  onNext: () => void;
   onBack: () => void;
   onPlayStimulus: () => void;
+  onPlayDarijaAudio: (darijaText: string) => Promise<void>;
+  words: Word[];
+  phrases: Phrase[];
   isPlaying: boolean;
 }
 
@@ -29,8 +45,12 @@ const QuizScreen: React.FC<QuizScreenProps> = ({
   questionNumber,
   totalQuestions,
   onAnswer,
+  onNext,
   onBack,
   onPlayStimulus,
+  onPlayDarijaAudio,
+  words,
+  phrases,
   isPlaying,
 }) => {
   const safeTop = useSafeAreaInsets().top;
@@ -62,46 +82,54 @@ const QuizScreen: React.FC<QuizScreenProps> = ({
     }
   };
 
-  const handleAnswerPress = (index: number) => {
+  const handleAnswerPress = async (index: number) => {
     if (answerChecked) return;
     
     setSelectedAnswer(index);
-    setAnswerChecked(true);
     
-    if (index === question.correct) {
-      playSound('correct');
-      setXpGained(10);
-      setShowXP(true);
-    } else {
-      playSound('wrong');
+    // Check if the selected answer is Darija (exists in words or phrases)
+    const selectedOption = question.options[index];
+    const isDarija = words.some(w => w.darija === selectedOption || w.darija.toLowerCase() === selectedOption.toLowerCase()) ||
+                     phrases.some(p => p.darija === selectedOption || p.darija.toLowerCase() === selectedOption.toLowerCase());
+    
+    // If it's Darija, play the audio
+    if (isDarija) {
+      await onPlayDarijaAudio(selectedOption);
     }
-    
-    setFeedback(question.explanation);
   };
 
   const handleCheck = () => {
     if (selectedAnswer === null) return;
+    
+    setAnswerChecked(true);
     const correctIndex = question.correct;
+    
     if (selectedAnswer === correctIndex) {
-      setScore(score + 1);
       playSound('correct');
+      setXpGained(10);
+      setShowXP(true);
+      setScore(score + 1);
     } else {
       playSound('wrong');
     }
+    
     // Show explanation regardless of correct/incorrect
     setFeedback(question.explanation);
-    setAnswerChecked(true);
   };
 
   const handleNext = () => {
+    // If there's a selected answer, record it first
     if (selectedAnswer !== null) {
       onAnswer(selectedAnswer);
-      setSelectedAnswer(null);
-      setAnswerChecked(false);
-      setFeedback('');
-      setShowXP(false);
-      setXpGained(0);
     }
+    // Reset state for next question
+    setSelectedAnswer(null);
+    setAnswerChecked(false);
+    setFeedback('');
+    setShowXP(false);
+    setXpGained(0);
+    // Always call onNext to advance to next question
+    onNext();
   };
 
   const getAnswerStyle = (index: number) => {
@@ -195,7 +223,13 @@ const QuizScreen: React.FC<QuizScreenProps> = ({
                     onPress={() => handleAnswerPress(index)}
                     disabled={answerChecked}
                   >
-                    <Text style={[styles.optionText, isSelected && !answerChecked && styles.optionTextSelected]}>{option}</Text>
+                    <Text 
+                      style={[styles.optionText, isSelected && !answerChecked && styles.optionTextSelected]}
+                      numberOfLines={3}
+                      ellipsizeMode="tail"
+                    >
+                      {option}
+                    </Text>
                   </TouchableOpacity>
                 );
               })}
@@ -220,7 +254,13 @@ const QuizScreen: React.FC<QuizScreenProps> = ({
                     onPress={() => handleAnswerPress(actualIndex)}
                     disabled={answerChecked}
                   >
-                    <Text style={[styles.optionText, isSelected && !answerChecked && styles.optionTextSelected]}>{option}</Text>
+                    <Text 
+                      style={[styles.optionText, isSelected && !answerChecked && styles.optionTextSelected]}
+                      numberOfLines={3}
+                      ellipsizeMode="tail"
+                    >
+                      {option}
+                    </Text>
                   </TouchableOpacity>
                 );
               })}
@@ -433,7 +473,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#E5E5E5',
     borderRadius: 12,
-    paddingVertical: 12,
+    paddingVertical: 14,
     paddingHorizontal: 16,
     shadowColor: '#000',
     shadowOffset: {
@@ -445,10 +485,16 @@ const styles = StyleSheet.create({
     elevation: 2,
     flex: 1,
     marginHorizontal: 6,
+    minHeight: 48,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   optionButtonSelected: {
-    borderWidth: 3,
+    borderWidth: 2,
     borderColor: '#333',
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 4,
   },
   optionText: {
     fontSize: 14,
@@ -456,10 +502,11 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontWeight: '500',
     fontFamily: 'Baloo2-Medium',
+    flexShrink: 1,
   },
   optionTextSelected: {
-    fontWeight: '700',
-    fontFamily: 'Baloo2-Bold',
+    fontWeight: '500',
+    fontFamily: 'Baloo2-Medium',
   },
   feedbackContainer: {
     flexDirection: 'row',

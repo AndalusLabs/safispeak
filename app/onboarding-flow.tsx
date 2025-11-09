@@ -95,7 +95,7 @@ export default function OnboardingFlowScreen() {
         setCurrentStep('intro-first-lesson');
         break;
                case 'intro-first-lesson':
-           router.push('/lessons/1');
+           router.push('/lessons/1?skipAuth=true');
            break;
     }
   };
@@ -619,7 +619,7 @@ export default function OnboardingFlowScreen() {
                  <View style={styles.startLessonContainer}>
                                        <TouchableOpacity
                       style={styles.startLessonButton}
-                      onPress={() => router.push('/lessons/1')}
+                      onPress={() => router.push('/lessons/1?skipAuth=true')}
                     >
                      <Text style={styles.startLessonButtonText}>
                        START LESSON

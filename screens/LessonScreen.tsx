@@ -54,7 +54,7 @@ interface LessonScreenProps {
 const LessonScreen: React.FC<LessonScreenProps> = ({ lesson, onBack }) => {
   const safeTop = useSafeAreaInsets().top;
   const { isAuthenticated } = useAuth();
-  const { showSignin } = useLocalSearchParams<{ showSignin?: string }>();
+  const { showSignin, skipAuth } = useLocalSearchParams<{ showSignin?: string; skipAuth?: string }>();
   
   // State management
   const [currentQuestion, setCurrentQuestion] = useState(0);
@@ -75,7 +75,7 @@ const LessonScreen: React.FC<LessonScreenProps> = ({ lesson, onBack }) => {
   const flashcards = [
     { darija: 'Assalamou Alaikoum', translation: 'Vrede zij met jou / Hallo' },
     { darija: 'Labas', translation: 'Hoe gaat het?' },
-    { darija: 'Shukran', translation: 'Dank je wel' },
+    { darija: 'Chokran', translation: 'Dank je wel' },
   ];
 
   // Load words when component mounts
@@ -87,11 +87,11 @@ const LessonScreen: React.FC<LessonScreenProps> = ({ lesson, onBack }) => {
   useEffect(() => {
     if (showSignin === 'true') {
       setShowSigninModal(true);
-    } else if (!isAuthenticated) {
-      // Show signup modal if not authenticated and no specific signin request
+    } else if (!isAuthenticated && skipAuth !== 'true') {
+      // Show signup modal if not authenticated and no skipAuth parameter
       setShowSignupModal(true);
     }
-  }, [showSignin, isAuthenticated]);
+  }, [showSignin, isAuthenticated, skipAuth]);
 
   // Handle authentication state changes
   useEffect(() => {
@@ -152,41 +152,38 @@ const LessonScreen: React.FC<LessonScreenProps> = ({ lesson, onBack }) => {
   };
 
   const playStimulus = async () => {
+    const currentQ = lesson.questions[currentQuestion];
+    await playDarijaAudio(currentQ.stimulus);
+  };
+
+  const playDarijaAudio = async (darijaText: string) => {
     if (isPlaying) return;
     setIsPlaying(true);
-    const currentQ = lesson.questions[currentQuestion];
     
-    console.log('Looking for stimulus:', currentQ.stimulus);
+    console.log('Looking for Darija audio:', darijaText);
     console.log('Available words:', words.map(w => w.darija));
     console.log('Available phrases:', phrases.map(p => p.darija));
     
     try {
-      let wordData = null;
+      // First try to find in words - exact match
+      let wordData = words.find(word => word.darija === darijaText);
       
-      // For first 3 questions (index 0-2), search in words
-      if (currentQuestion < 3) {
-        wordData = words.find(word => word.darija === currentQ.stimulus);
-        // If no exact match in words, try case-insensitive match
-        if (!wordData) {
-          wordData = words.find(word => word.darija.toLowerCase() === currentQ.stimulus.toLowerCase());
-        }
-      } else {
-        // For questions 4-6 (index 3-5), search in phrases
-        wordData = phrases.find(phrase => phrase.darija === currentQ.stimulus);
-        // If no exact match in phrases, try case-insensitive match
-        if (!wordData) {
-          wordData = phrases.find(phrase => phrase.darija.toLowerCase() === currentQ.stimulus.toLowerCase());
-        }
-        // If still not found, try partial match in phrases as last resort
-        if (!wordData) {
-          wordData = phrases.find(phrase => 
-            phrase.darija.toLowerCase().includes(currentQ.stimulus.toLowerCase()) ||
-            currentQ.stimulus.toLowerCase().includes(phrase.darija.toLowerCase())
-          );
-        }
+      // If no exact match in words, try case-insensitive match
+      if (!wordData) {
+        wordData = words.find(word => word.darija.toLowerCase() === darijaText.toLowerCase());
       }
       
-      console.log('Found word/phrase data:', wordData);
+      // If still not found in words, try phrases - exact match
+      if (!wordData) {
+        wordData = phrases.find(phrase => phrase.darija === darijaText);
+      }
+      
+      // If no exact match in phrases, try case-insensitive match
+      if (!wordData) {
+        wordData = phrases.find(phrase => phrase.darija.toLowerCase() === darijaText.toLowerCase());
+      }
+      
+      console.log('Found Darija audio data:', wordData);
       
       if (wordData && wordData.audio_file) {
         // Build audio URL from Supabase storage with dynamic chapter
@@ -194,7 +191,7 @@ const LessonScreen: React.FC<LessonScreenProps> = ({ lesson, onBack }) => {
         const actualFileName = wordData.audio_file;
         const audioUrl = `${SUPABASE_CONFIG.url}/storage/v1/object/public/${SUPABASE_CONFIG.bucket}/${chapterFolder}/${actualFileName}`;
         
-        console.log('Trying to play audio from URL:', audioUrl);
+        console.log('Trying to play Darija audio from URL:', audioUrl);
         
         try {
           // First, let's test if the URL is accessible
@@ -219,7 +216,7 @@ const LessonScreen: React.FC<LessonScreenProps> = ({ lesson, onBack }) => {
           const duration = status.isLoaded ? status.durationMillis : 3000;
           
           await sound.playAsync();
-          console.log('Successfully played Supabase audio');
+          console.log('Successfully played Darija audio');
           
           // Reset playing state after audio duration
           setTimeout(async () => {
@@ -232,18 +229,24 @@ const LessonScreen: React.FC<LessonScreenProps> = ({ lesson, onBack }) => {
           }, duration || 3000);
           
         } catch (audioError) {
-          console.log('Supabase audio failed:', audioError);
+          console.log('Supabase Darija audio failed:', audioError);
           console.log('Failed URL:', audioUrl);
           setIsPlaying(false);
         }
       } else {
-        console.log('No matching word found in database');
+        console.log('No matching word/phrase found in database for Darija text');
         setIsPlaying(false);
       }
     } catch (error) {
-      console.log('Error playing stimulus:', error);
+      console.log('Error playing Darija audio:', error);
       setIsPlaying(false);
     }
+  };
+
+  const playFlashcardAudio = async () => {
+    if (isPlaying) return;
+    const currentCard = flashcards[currentCardIndex];
+    await playDarijaAudio(currentCard.darija);
   };
 
   // Fetch words and phrases from Supabase
@@ -364,7 +367,7 @@ const LessonScreen: React.FC<LessonScreenProps> = ({ lesson, onBack }) => {
         onNext={handleFlashcardNext}
         onPrevious={handleFlashcardPrevious}
         onBack={() => setShowFlashcards(false)}
-        onPlayAudio={playStimulus}
+        onPlayAudio={playFlashcardAudio}
         isPlaying={isPlaying}
       />
     );
@@ -377,8 +380,12 @@ const LessonScreen: React.FC<LessonScreenProps> = ({ lesson, onBack }) => {
       questionNumber={currentQuestion + 1}
       totalQuestions={lesson.questions.length}
       onAnswer={handleAnswer}
+      onNext={handleNext}
       onBack={onBack}
       onPlayStimulus={playStimulus}
+      onPlayDarijaAudio={playDarijaAudio}
+      words={words}
+      phrases={phrases}
       isPlaying={isPlaying}
     />
   );

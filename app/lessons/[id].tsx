@@ -1,5 +1,5 @@
 import React from 'react';
-import { useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import LessonScreen from '../../screens/LessonScreen';
 import lessons from './data';
 
@@ -13,8 +13,7 @@ export default function LessonPage() {
   }
 
   const handleBack = () => {
-    // Navigation logic would go here
-    console.log('Navigate back');
+    router.back();
   };
 
   return (

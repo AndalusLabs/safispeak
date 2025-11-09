@@ -1,10 +1,8 @@
 import React, { useRef, useState } from 'react';
-import { Animated, Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Animated, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { GestureHandlerRootView, PanGestureHandler, State } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Flashcard from '../components/Flashcard';
-
-const { width, height } = Dimensions.get('window');
 
 interface FlashcardData {
   darija: string;
@@ -66,10 +64,8 @@ const FlashcardScreen: React.FC<FlashcardScreenProps> = ({
   const handleSwipeGesture = ({ nativeEvent }: any) => {
     if (nativeEvent.state === State.END) {
       if (nativeEvent.translationX > 50) {
-        // Swipe right - next card
         handleNextCard();
       } else if (nativeEvent.translationX < -50) {
-        // Swipe left - previous card
         handlePreviousCard();
       }
     }
@@ -79,49 +75,51 @@ const FlashcardScreen: React.FC<FlashcardScreenProps> = ({
     <View style={styles.container}>
       {/* Header */}
       <View style={[styles.header, { paddingTop: safeTop + 10 }]}>
-        <TouchableOpacity style={styles.backButton} onPress={onBack}>
-          <Text style={styles.backIcon}>←</Text>
-        </TouchableOpacity>
-        <View style={styles.flashcardProgressContainer}>
+        <View style={styles.headerLeft}>
+          <TouchableOpacity style={styles.backButton} onPress={onBack}>
+            <Text style={styles.backIcon}>←</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.headerCenter}>
           <Text style={styles.progressText}>
             Flashcard {currentCardIndex + 1} of {flashcards.length}
           </Text>
-          <View style={styles.motivationProgressBar}>
+          <View style={styles.progressBar}>
             <View
               style={[
-                styles.motivationProgressFill,
+                styles.progressFill,
                 { width: `${((currentCardIndex + 1) / flashcards.length) * 100}%` },
               ]}
             />
           </View>
         </View>
-        <View style={styles.placeholderSpace} />
+
+        <View style={styles.headerRight} />
       </View>
 
-      {/* Flashcard Container */}
-      <View style={styles.flashcardScreenContainer}>
-        <GestureHandlerRootView style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-          <View style={styles.flashcardWrapper}>
-            <PanGestureHandler onHandlerStateChange={handleSwipeGesture}>
-              <View>
-                <Flashcard
-                  card={currentCard}
-                  isPlaying={isPlaying}
-                  onFlip={handleCardFlip}
-                  onPlayAudio={onPlayAudio}
-                  flipAnimation={flipAnimation}
-                />
-              </View>
-            </PanGestureHandler>
-          </View>
+      {/* Flashcard Container - Simple flexbox centering */}
+      <View style={styles.content}>
+        <GestureHandlerRootView style={styles.gestureContainer}>
+          <PanGestureHandler onHandlerStateChange={handleSwipeGesture}>
+            <View style={styles.flashcardWrapper}>
+              <Flashcard
+                card={currentCard}
+                isPlaying={isPlaying}
+                onFlip={handleCardFlip}
+                onPlayAudio={onPlayAudio}
+                flipAnimation={flipAnimation}
+              />
+            </View>
+          </PanGestureHandler>
         </GestureHandlerRootView>
-        
-        {/* Swipe Instructions */}
-        <View style={styles.swipeInstruction}>
-          <Text style={styles.swipeInstructionText}>
-            Swipe left for previous • Swipe right for next
-          </Text>
-        </View>
+      </View>
+
+      {/* Swipe Instructions */}
+      <View style={styles.instructions}>
+        <Text style={styles.instructionsText}>
+          Swipe left for previous • Swipe right for next
+        </Text>
       </View>
     </View>
   );
@@ -138,6 +136,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 20,
   },
+  headerLeft: {
+    width: 40,
+    alignItems: 'flex-start',
+  },
   backButton: {
     width: 40,
     height: 40,
@@ -146,10 +148,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 4,
@@ -159,7 +158,7 @@ const styles = StyleSheet.create({
     color: '#333',
     fontFamily: 'Baloo2-Medium',
   },
-  flashcardProgressContainer: {
+  headerCenter: {
     flex: 1,
     alignItems: 'center',
   },
@@ -169,7 +168,7 @@ const styles = StyleSheet.create({
     color: '#00A86B',
     textAlign: 'center',
   },
-  motivationProgressBar: {
+  progressBar: {
     width: '80%',
     height: 6,
     backgroundColor: '#E5E5E5',
@@ -177,28 +176,36 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     marginTop: 8,
   },
-  motivationProgressFill: {
+  progressFill: {
     height: '100%',
     backgroundColor: '#00A86B',
     borderRadius: 4,
   },
-  placeholderSpace: {
+  headerRight: {
     width: 40,
   },
-  flashcardScreenContainer: {
+  content: {
     flex: 1,
+    paddingHorizontal: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  gestureContainer: {
     width: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   flashcardWrapper: {
-    width: width * 0.8,
-    height: height * 0.5,
-  },
-  swipeInstruction: {
+    width: '100%',
     alignItems: 'center',
+    justifyContent: 'center',
+  },
+  instructions: {
     paddingVertical: 20,
     paddingHorizontal: 20,
+    alignItems: 'center',
   },
-  swipeInstructionText: {
+  instructionsText: {
     fontSize: 16,
     fontFamily: 'Baloo2-Medium',
     color: '#666',
@@ -207,5 +214,3 @@ const styles = StyleSheet.create({
 });
 
 export default FlashcardScreen;
-
-
