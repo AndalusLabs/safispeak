@@ -46,11 +46,10 @@ const FlashcardScreen: React.FC<FlashcardScreenProps> = ({
   };
 
   const handleNextCard = () => {
-    if (currentCardIndex < flashcards.length - 1) {
-      setIsCardFlipped(false);
-      flipAnimation.setValue(0);
-      onNext();
-    }
+    // Always call onNext, even on the last card, so parent can handle navigation
+    setIsCardFlipped(false);
+    flipAnimation.setValue(0);
+    onNext();
   };
 
   const handlePreviousCard = () => {

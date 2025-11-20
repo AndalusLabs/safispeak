@@ -21,7 +21,7 @@ export default function WelcomeScreen() {
   };
 
   const handleSignIn = () => {
-    router.push('/lessons/1?showSignin=true');
+    router.push('/lessons/1?showSignin=true&fromWelcome=true');
   };
 
   return (
@@ -84,7 +84,7 @@ const styles = StyleSheet.create({
   getStartedButton: {
     backgroundColor: '#00A86B',
     paddingVertical: 18,
-    borderRadius: 12,
+    borderRadius: 150,
     marginBottom: 16,
     elevation: 2,
     shadowColor: '#000',
@@ -101,7 +101,7 @@ const styles = StyleSheet.create({
   },
   signInButton: {
     paddingVertical: 18,
-    borderRadius: 12,
+    borderRadius: 150,
     borderWidth: 2,
     borderColor: '#E5E5E5',
     backgroundColor: 'white',

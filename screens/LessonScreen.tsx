@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { Audio } from 'expo-av';
-import { useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Dimensions, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -8,8 +8,11 @@ import SigninModal from '../components/SigninModal';
 import SignupModal from '../components/SignupModal';
 import { SUPABASE_CONFIG, supabaseAnonKey, supabaseUrl } from '../config/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { ProgressService } from '../services/progressService';
+import AccountPromptScreen from './AccountPromptScreen';
 import FlashcardScreen from './FlashcardScreen';
 import MotivationScreen from './MotivationScreen';
+import { presentRevenueCatPaywall } from '../paywall';
 import QuizScreen from './QuizScreen';
 import WelcomeScreen from './WelcomeScreen';
 
@@ -53,8 +56,8 @@ interface LessonScreenProps {
 
 const LessonScreen: React.FC<LessonScreenProps> = ({ lesson, onBack }) => {
   const safeTop = useSafeAreaInsets().top;
-  const { isAuthenticated } = useAuth();
-  const { showSignin, skipAuth } = useLocalSearchParams<{ showSignin?: string; skipAuth?: string }>();
+  const { isAuthenticated, user } = useAuth();
+  const { showSignin, skipAuth, fromWelcome } = useLocalSearchParams<{ showSignin?: string; skipAuth?: string; fromWelcome?: string }>();
   
   // State management
   const [currentQuestion, setCurrentQuestion] = useState(0);
@@ -67,9 +70,14 @@ const LessonScreen: React.FC<LessonScreenProps> = ({ lesson, onBack }) => {
   const [phrases, setPhrases] = useState<Phrase[]>([]);
   const [showMotivationScreen, setShowMotivationScreen] = useState(false);
   const [showSecondMotivationScreen, setShowSecondMotivationScreen] = useState(false);
-  const [showFlashcards, setShowFlashcards] = useState(false);
+  const [showAccountPrompt, setShowAccountPrompt] = useState(false);
+  const [showWordsSectionSignup, setShowWordsSectionSignup] = useState(false);
+  const [skippedAccount, setSkippedAccount] = useState(false);
+  const [showFlashcards, setShowFlashcards] = useState(true); // Start with flashcards first
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isChapterCompleted, setIsChapterCompleted] = useState(false);
+  const [showPaywall, setShowPaywall] = useState(false);
 
   // Flashcard data
   const flashcards = [
@@ -82,6 +90,47 @@ const LessonScreen: React.FC<LessonScreenProps> = ({ lesson, onBack }) => {
   useEffect(() => {
     fetchWords();
   }, []);
+
+  // Check chapter progress when authenticated
+  useEffect(() => {
+    const checkChapterProgress = async () => {
+      if (isAuthenticated && user?.id) {
+        const completed = await ProgressService.isChapterCompleted(user.id, lesson.id);
+        setIsChapterCompleted(completed);
+        // If chapter is already completed, user should start from beginning
+        // (This is the expected behavior per user's request)
+      }
+    };
+
+    checkChapterProgress();
+  }, [isAuthenticated, user?.id, lesson.id]);
+
+  // Present RevenueCat paywall when requested
+  useEffect(() => {
+    if (!showPaywall) return;
+
+    let isActive = true;
+
+    const showRevenueCatPaywall = async () => {
+      const purchased = await presentRevenueCatPaywall();
+
+      if (!isActive) return;
+
+      if (purchased && isAuthenticated && user?.id) {
+        await ProgressService.markChapterCompleted(user.id, lesson.id);
+        setIsChapterCompleted(true);
+      }
+
+      setShowPaywall(false);
+      onBack();
+    };
+
+    showRevenueCatPaywall();
+
+    return () => {
+      isActive = false;
+    };
+  }, [showPaywall, isAuthenticated, user?.id, lesson.id, onBack]);
 
   // Handle query parameters
   useEffect(() => {
@@ -96,10 +145,10 @@ const LessonScreen: React.FC<LessonScreenProps> = ({ lesson, onBack }) => {
   // Handle authentication state changes
   useEffect(() => {
     if (isAuthenticated) {
-      setShowWelcomeScreen(true);
       setShowSignupModal(false);
       setShowSigninModal(false);
-      setShowMotivationScreen(false);
+      // Don't show welcome screen - user should continue with lesson
+      setShowWelcomeScreen(false);
     }
   }, [isAuthenticated]);
 
@@ -113,20 +162,35 @@ const LessonScreen: React.FC<LessonScreenProps> = ({ lesson, onBack }) => {
     // Let the user click "Next" button
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (currentQuestion < lesson.questions.length - 1) {
       const nextQuestion = currentQuestion + 1;
       
-      // Show first motivation screen after question 3 (words section)
+      // Show account prompt after question 3 (words section), then signup or motivation screen
       if (currentQuestion === 2) { // After question 3 (index 2)
-        setShowMotivationScreen(true);
-        // Don't update currentQuestion yet, let motivation screen handle it
+        // Only show account prompt if not authenticated
+        if (!isAuthenticated) {
+          setShowAccountPrompt(true);
+        } else {
+          setShowMotivationScreen(true);
+        }
+        // Don't update currentQuestion yet, let account prompt/motivation screen handle it
       } else {
         setCurrentQuestion(nextQuestion);
       }
     } else {
-      // Show second motivation screen after all questions (sentences section)
-      setShowSecondMotivationScreen(true);
+      // All questions completed
+      // For chapter 1, show paywall before marking as completed
+      if (lesson.id === 1) {
+        setShowPaywall(true);
+      } else {
+        // For other chapters, mark as completed and go back
+        if (isAuthenticated && user?.id) {
+          await ProgressService.markChapterCompleted(user.id, lesson.id);
+          setIsChapterCompleted(true);
+        }
+        onBack();
+      }
     }
   };
 
@@ -139,9 +203,8 @@ const LessonScreen: React.FC<LessonScreenProps> = ({ lesson, onBack }) => {
     if (currentCardIndex < flashcards.length - 1) {
       setCurrentCardIndex(currentCardIndex + 1);
     } else {
-      // All flashcards completed, navigate to phrases
-      // This would typically navigate to the next section
-      onBack();
+      // All flashcards completed, show motivation screen before questions
+      setShowSecondMotivationScreen(true);
     }
   };
 
@@ -189,26 +252,33 @@ const LessonScreen: React.FC<LessonScreenProps> = ({ lesson, onBack }) => {
         // Build audio URL from Supabase storage with dynamic chapter
         const chapterFolder = `chapter_${lesson.id}`;
         const actualFileName = wordData.audio_file;
-        const audioUrl = `${SUPABASE_CONFIG.url}/storage/v1/object/public/${SUPABASE_CONFIG.bucket}/${chapterFolder}/${actualFileName}`;
+        const filePath = `${chapterFolder}/${actualFileName}`;
         
-        console.log('Trying to play Darija audio from URL:', audioUrl);
+        // Use Supabase storage client to get public URL
+        const { data: urlData } = supabase.storage
+          .from(SUPABASE_CONFIG.bucket)
+          .getPublicUrl(filePath);
+        
+        const audioUrl = urlData.publicUrl;
+        
+        console.log('Audio file from database:', actualFileName);
+        console.log('Chapter folder:', chapterFolder);
+        console.log('File path:', filePath);
+        console.log('Bucket:', SUPABASE_CONFIG.bucket);
+        console.log('Public URL from Supabase:', audioUrl);
         
         try {
-          // First, let's test if the URL is accessible
-          console.log('Testing URL accessibility...');
-          const response = await fetch(audioUrl, { method: 'HEAD' });
-          console.log('URL response status:', response.status);
+          // First verify the file exists by trying to fetch it
+          const testResponse = await fetch(audioUrl);
+          console.log('File accessibility check:', testResponse.status, testResponse.statusText);
           
-          if (!response.ok) {
-            throw new Error(`File not found: ${response.status} ${response.statusText}`);
+          if (!testResponse.ok) {
+            throw new Error(`File not accessible: ${testResponse.status} ${testResponse.statusText}`);
           }
           
           const sound = new Audio.Sound();
           await sound.loadAsync({ 
             uri: audioUrl,
-            headers: {
-              'Accept': 'audio/mpeg, audio/mp3, audio/*',
-            }
           });
           
           // Get the duration of the audio
@@ -234,7 +304,8 @@ const LessonScreen: React.FC<LessonScreenProps> = ({ lesson, onBack }) => {
           setIsPlaying(false);
         }
       } else {
-        console.log('No matching word/phrase found in database for Darija text');
+        console.log(`No matching word/phrase found in database for: "${darijaText}"`);
+        console.log('Please add this word to the database or check the spelling.');
         setIsPlaying(false);
       }
     } catch (error) {
@@ -285,7 +356,10 @@ const LessonScreen: React.FC<LessonScreenProps> = ({ lesson, onBack }) => {
   };
 
   const handleSigninSuccess = () => {
-    setShowWelcomeScreen(true);
+    // If user came from welcome page, they should go directly to the lesson
+    // Don't show welcome screen - just close signin modal and continue with lesson
+    setShowSigninModal(false);
+    setShowWelcomeScreen(false);
   };
 
   // Show signup modal if not authenticated
@@ -307,7 +381,13 @@ const LessonScreen: React.FC<LessonScreenProps> = ({ lesson, onBack }) => {
       <View style={styles.container}>
         <SigninModal
           visible={showSigninModal}
-          onClose={() => setShowSigninModal(false)}
+          onClose={() => {
+            setShowSigninModal(false);
+            // If came from welcome page, navigate back to welcome
+            if (fromWelcome === 'true') {
+              router.push('/welcome');
+            }
+          }}
           onSuccess={handleSigninSuccess}
         />
       </View>
@@ -329,31 +409,78 @@ const LessonScreen: React.FC<LessonScreenProps> = ({ lesson, onBack }) => {
     );
   }
 
+  // Show account prompt after words section (before signup or motivation screen)
+  if (showAccountPrompt) {
+    return (
+      <AccountPromptScreen
+        onCreateAccount={() => {
+          setShowAccountPrompt(false);
+          setShowWordsSectionSignup(true);
+          setSkippedAccount(false);
+        }}
+        onContinueWithoutAccount={() => {
+          setShowAccountPrompt(false);
+          setSkippedAccount(true);
+          setWelcomeUsername(''); // Reset username when skipping account
+          setShowMotivationScreen(true);
+        }}
+      />
+    );
+  }
+
+  // Show signup modal (after account prompt if user chose to create account)
+  if (showWordsSectionSignup) {
+    return (
+      <View style={styles.container}>
+        <SignupModal
+          visible={showWordsSectionSignup}
+          onClose={() => {
+            setShowWordsSectionSignup(false);
+            setShowAccountPrompt(true); // Go back to account prompt screen
+          }}
+          onSuccess={(username: string) => {
+            setWelcomeUsername(username);
+            setShowWordsSectionSignup(false);
+            setShowMotivationScreen(true);
+          }}
+        />
+      </View>
+    );
+  }
+
   // Show first motivation screen
   if (showMotivationScreen) {
     return (
       <MotivationScreen
-        title="Great Progress!"
-        message="You've completed the words section! Now let's move on to sentences."
         buttonText="Continue to Sentences"
         progress={1}
         onContinue={() => {
           setShowMotivationScreen(false);
           setCurrentQuestion(3); // Continue to question 4 (index 3)
         }}
+        onBack={!isAuthenticated ? () => {
+          setShowMotivationScreen(false);
+          setShowAccountPrompt(true);
+        } : undefined}
+        username={welcomeUsername || undefined}
+        skippedAccount={skippedAccount}
       />
     );
   }
 
-  // Show second motivation screen
+  // Show second motivation screen (after flashcards, before questions)
   if (showSecondMotivationScreen) {
     return (
       <MotivationScreen
         title="Great Progress!"
-        message="Excellent work on the sentences! Now let's continue to some flashcards to reinforce what you've learned."
-        buttonText="Continue to Flashcards"
+        message="You've completed the flashcards! Now let's test your knowledge with some questions."
+        buttonText="Continue to Questions"
         progress={2}
-        onContinue={handleContinueToFlashcards}
+        onContinue={() => {
+          setShowSecondMotivationScreen(false);
+          setShowFlashcards(false);
+          setCurrentQuestion(0); // Start with first question
+        }}
       />
     );
   }

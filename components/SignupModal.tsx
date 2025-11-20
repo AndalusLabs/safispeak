@@ -133,7 +133,7 @@ const SignupModal: React.FC<SignupModalProps> = ({ visible, onClose, onSuccess }
         }
 
         onSuccess(username);
-        onClose();
+        // Don't call onClose() here - let onSuccess handle navigation
       }
     } catch (error) {
       console.log('Signup error:', error);
@@ -190,7 +190,7 @@ const SignupModal: React.FC<SignupModalProps> = ({ visible, onClose, onSuccess }
             } else {
               console.log('Session set successfully!');
               onSuccess('Google User');
-              onClose();
+              // Don't call onClose() here - let onSuccess handle navigation
             }
           }
         }

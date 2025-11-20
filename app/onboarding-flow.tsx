@@ -15,6 +15,17 @@ const safiLogo = require('@/assets/images/logo_new_black.png');
 Asset.loadAsync([safiLogo]);
 const { width, height } = Dimensions.get('window');
 
+const mascotAnimationProps = {
+  from: { translateY: 0 },
+  animate: { translateY: -20 },
+  transition: {
+    type: 'timing',
+    duration: 800,
+    loop: true,
+    repeatReverse: true,
+  },
+} as const;
+
 
 type OnboardingStep = 'intro' | 'questions-intro' | 'discover-source' | 'motivation' | 'darija-level' | 'learning-goal' | 'motivation-goal' | 'notifications-permission' | 'encouragement' | 'intro-first-lesson';
 
@@ -94,9 +105,9 @@ export default function OnboardingFlowScreen() {
       case 'encouragement':
         setCurrentStep('intro-first-lesson');
         break;
-               case 'intro-first-lesson':
-           router.push('/lessons/1?skipAuth=true');
-           break;
+      case 'intro-first-lesson':
+        router.push('/lessons/1?skipAuth=true');
+        break;
     }
   };
 
@@ -163,13 +174,13 @@ export default function OnboardingFlowScreen() {
   ];
 
   const motivationOptions = [
-    { id: 'productive', text: 'Spend my time productively', icon: <Ionicons name="bulb-outline" size={26} color="#FFD700" /> }, // goud/geel
-    { id: 'family', text: 'Connect with family & friends', icon: <Ionicons name="people-outline" size={26} color="#FF6B6B" /> }, // warm rood
-    { id: 'studies', text: 'Support my studies', icon: <Ionicons name="book-outline" size={26} color="#4ECDC4" /> }, // turquoise
-    { id: 'career', text: 'Boost my career', icon: <Ionicons name="briefcase-outline" size={26} color="#1E90FF" /> }, // blauw
-    { id: 'fun', text: 'Just for fun', icon: <Ionicons name="sparkles-outline" size={26} color="#9B59B6" /> }, // paars
-    { id: 'travel', text: 'Prepare for travel', icon: <Ionicons name="airplane-outline" size={26} color="#FFA500" /> }, // oranje
-    { id: 'other', text: 'Other …', icon: <Ionicons name="chatbubble-ellipses-outline" size={26} color="#2ECC71" /> }, // groen
+    { id: 'productive', text: 'Spend my time productively', icon: <Ionicons name="bulb-outline" size={20} color="#FFD700" /> }, // goud/geel
+    { id: 'family', text: 'Connect with family & friends', icon: <Ionicons name="people-outline" size={20} color="#FF6B6B" /> }, // warm rood
+    { id: 'studies', text: 'Support my studies', icon: <Ionicons name="book-outline" size={20} color="#4ECDC4" /> }, // turquoise
+    { id: 'career', text: 'Boost my career', icon: <Ionicons name="briefcase-outline" size={20} color="#1E90FF" /> }, // blauw
+    { id: 'fun', text: 'Just for fun', icon: <Ionicons name="sparkles-outline" size={20} color="#9B59B6" /> }, // paars
+    { id: 'travel', text: 'Prepare for travel', icon: <Ionicons name="airplane-outline" size={20} color="#FFA500" /> }, // oranje
+    { id: 'other', text: 'Other …', icon: <Ionicons name="chatbubble-ellipses-outline" size={20} color="#2ECC71" /> }, // groen
   ];
 
   const levelOptions = [
@@ -230,19 +241,13 @@ export default function OnboardingFlowScreen() {
         return (
           <View style={styles.introContainer}>
             <View style={styles.headerRowColumn}>
-            <MotiImage
-              source={safiLogo}
-              style={styles.mascotImage}
-              resizeMode="contain"
-              from={{ translateY: 0 }}
-              animate={{ translateY: -20 }}
-              transition={{
-                type: 'timing',
-                duration: 800,
-                loop: true,          // zorgt dat hij blijft loopen
-                repeatReverse: true, // zorgt dat hij weer terug gaat
-              }}
-            />
+              <MotiImage
+                key={`mascot-${currentStep}`}
+                source={safiLogo}
+                style={styles.mascotImage}
+                resizeMode="contain"
+                {...mascotAnimationProps}
+              />
               <View style={styles.speechBubble}>
               <View style={styles.speechTailTopBorder} />
               <View style={styles.speechTailTop} />
@@ -256,17 +261,18 @@ export default function OnboardingFlowScreen() {
   
       case 'questions-intro':
         return (
-          <View style={styles.contentContainer}>
+          <View style={styles.introContainer}>
             <View style={styles.headerRowColumn}>
-              <Image
+              <MotiImage
+                key={`mascot-${currentStep}`}
                 source={safiLogo}
                 style={styles.mascotImage}
                 resizeMode="contain"
-                fadeDuration={0}
+                {...mascotAnimationProps}
               />
               <View style={styles.speechBubble}>
-              <View style={styles.speechTailTopBorder} />
-              <View style={styles.speechTailTop} />
+                <View style={styles.speechTailTopBorder} />
+                <View style={styles.speechTailTop} />
                 <Text style={styles.speechText}>
                   Let's get to know you! Just 4 quick questions before we start your first lesson
                 </Text>
@@ -612,15 +618,14 @@ export default function OnboardingFlowScreen() {
                      <View style={styles.speechTailTopBorder} />
                      <View style={styles.speechTailTop} />
                      <Text style={styles.speechText}>
-                       Great! Here's your first lesson — just 2 minutes to get started 🚀
-                     </Text>
+                       Great! Here's your first lesson. We will start with some flashcards to get you up to speed!                    </Text>
                    </View>
                  </View>
                  <View style={styles.startLessonContainer}>
-                                       <TouchableOpacity
-                      style={styles.startLessonButton}
-                      onPress={() => router.push('/lessons/1?skipAuth=true')}
-                    >
+                   <TouchableOpacity
+                     style={styles.startLessonButton}
+                     onPress={() => router.push('/lessons/1?skipAuth=true')}
+                   >
                      <Text style={styles.startLessonButtonText}>
                        START LESSON
                      </Text>
@@ -637,12 +642,13 @@ export default function OnboardingFlowScreen() {
   return (
     <View style={styles.container}>
       {/* Header with back button and progress bar */}
-      {currentStep !== 'intro' && (
+      {currentStep !== 'intro' && currentStep !== 'questions-intro' && (
         <View style={[styles.header, { paddingTop: safeTop + 10 }]}>
           <TouchableOpacity style={styles.backButton} onPress={handleBack}>
             <Text style={styles.backIcon}>←</Text>
           </TouchableOpacity>
-                     {(currentStep === 'discover-source' || currentStep === 'motivation' || currentStep === 'darija-level' || currentStep === 'learning-goal' || currentStep === 'motivation-goal' || currentStep === 'notifications-permission' || currentStep === 'encouragement' || currentStep === 'intro-first-lesson') && (
+
+          {(currentStep === 'discover-source' || currentStep === 'motivation' || currentStep === 'darija-level' || currentStep === 'learning-goal' || currentStep === 'motivation-goal' || currentStep === 'notifications-permission' || currentStep === 'encouragement') && (
             <View style={styles.progressContainer}>
               <View style={styles.progressBackground} />
               <View style={[styles.progressFill, { width: getProgressWidth() }]} />
@@ -651,7 +657,8 @@ export default function OnboardingFlowScreen() {
         </View>
       )}
 
-             {/* Main content */}
+
+        {/* Main content */}
        <ScrollView 
          style={styles.content} 
          contentContainerStyle={styles.contentContainerStyle}
@@ -661,22 +668,24 @@ export default function OnboardingFlowScreen() {
        </ScrollView>
 
       {/* Bottom button */}
-      <View style={styles.bottomContainer}>
-        <TouchableOpacity
-          style={[
-            styles.nextButton,
-            !canProceed() && styles.nextButtonDisabled
-          ]}
-          onPress={handleNext}
-          disabled={!canProceed()}
-        >
-          <Text style={styles.nextButtonText}>
-            {currentStep === 'intro' ? 'NEXT' : 
-             currentStep === 'questions-intro' ? 'LET\'S GO' : 
-             'CONTINUE'}
-          </Text>
-        </TouchableOpacity>
-      </View>
+      {currentStep !== 'intro-first-lesson' && (
+        <View style={styles.bottomContainer}>
+          <TouchableOpacity
+            style={[
+              styles.nextButton,
+              !canProceed() && styles.nextButtonDisabled
+            ]}
+            onPress={handleNext}
+            disabled={!canProceed()}
+          >
+            <Text style={styles.nextButtonText}>
+              {currentStep === 'intro' ? 'NEXT' : 
+               currentStep === 'questions-intro' ? 'LET\'S GO' : 
+               'CONTINUE'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
 }
@@ -700,7 +709,7 @@ const styles = StyleSheet.create({
     width: '100%',
     marginBottom: 32,
     gap: 12,
-    },
+  },
   
   header: {
     flexDirection: 'row',
@@ -743,10 +752,11 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 40,
   },
-  contentContainerStyle:  { paddingTop: 16, paddingBottom: 24, flexGrow: 1 },
+  contentContainerStyle:  { paddingTop: 16, paddingBottom: 100, flexGrow: 1 },
 
   introContainer: {
     marginTop: 180, // alleen intro meer ruimte van boven
+    alignItems: 'center',
   },
 
   contentContainer: {
@@ -793,30 +803,32 @@ const styles = StyleSheet.create({
   },
 
   mascotImageTiny: {
-    width: 90,       
-    height: 90,      
-    marginRight: 12,  
+    width: 120,
+    height: 120,
+    marginRight: 16,
   },
 
   speechBubbleSmall: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 15,
-    borderWidth: 2,
+    borderRadius: 18,
+    borderWidth: 3,
     borderColor: '#E5E5E5',
-    padding: 15,
+    paddingVertical: 20,
+    paddingHorizontal: 22,
     position: 'relative',
-    maxWidth: '75%',
+    flex: 1,
+    maxWidth: '72%',
   },
   speechTextTiny: {
-    fontSize: 14,
-    fontFamily: 'Baloo2-Medium',
+    fontSize: 18,
+    fontFamily: 'Baloo2-Bold',
     color: '#333',
-    lineHeight: 18,
+    lineHeight: 26,
   },
   speechTail: {
     position: 'absolute',
     left: -9,
-    top: '50%',
+    top: '30%',
     width: 0,
     height: 0,
     borderTopWidth: 8,
@@ -830,7 +842,7 @@ const styles = StyleSheet.create({
   speechTailBorder: {
     position: 'absolute',
     left: -11,
-    top: '50%',
+    top: '30%',
     width: 0,
     height: 0,
     borderTopWidth: 8,
@@ -934,26 +946,26 @@ speechTailTopBorder: {
     backgroundColor: '#FFFFFF',
     borderWidth: 2,
     borderColor: '#E5E5E5',
-    borderRadius: 12,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    marginBottom: 6,
+    borderRadius: 14,
+    paddingVertical: 16,
+    paddingHorizontal: 18,
+    marginBottom: 10,
     elevation: 1,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    shadowOpacity: 0.12,
+    shadowRadius: 3,
   },
   levelOptionContent: {
     alignItems: 'center',
+    gap: 8,
   },
   levelOptionText: {
-    fontSize: 15,
+    fontSize: 16,
     fontFamily: 'Baloo2-Medium',
     color: '#333',
     textAlign: 'center',
-    marginBottom: 6,
-    lineHeight: 16,
+    lineHeight: 22,
   },
   progressBarsContainer: {
     flexDirection: 'row',
@@ -978,10 +990,10 @@ speechTailTopBorder: {
     backgroundColor: '#FFFFFF',
     borderWidth: 2,
     borderColor: '#E5E5E5',
-    borderRadius: 16,
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    marginBottom: 12,
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginBottom: 8,
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -1003,11 +1015,11 @@ speechTailTopBorder: {
     flex: 1,
   },
   motivationIcon: {
-    fontSize: 24,
-    marginRight: 16,
+    fontSize: 20,
+    marginRight: 12,
   },
   motivationText: {
-    fontSize: 16,
+    fontSize: 14,
     fontFamily: 'Baloo2-Medium',
     color: '#333',
     flex: 1,
@@ -1016,9 +1028,9 @@ speechTailTopBorder: {
     color: '#00A86B',
   },
   checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
     borderWidth: 2,
     borderColor: '#E5E5E5',
     backgroundColor: '#FFFFFF',
@@ -1031,7 +1043,7 @@ speechTailTopBorder: {
   },
   checkmark: {
     color: '#FFFFFF',
-    fontSize: 14,
+    fontSize: 12,
     fontFamily: 'Baloo2-Medium',
   },
   bottomContainer: {

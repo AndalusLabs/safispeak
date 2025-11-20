@@ -37,10 +37,16 @@ const SigninModal: React.FC<SigninModalProps> = ({ visible, onClose, onSuccess }
       });
 
       if (error) {
+        console.log('Signin error details:', error);
+        console.log('Error message:', error.message);
+        console.log('Error status:', error.status);
+        
         if (error.message.includes('Invalid login credentials')) {
           setEmailError('Invalid email or password. Please try again.');
+        } else if (error.message.includes('Email not confirmed') || error.message.includes('email_not_confirmed')) {
+          setEmailError('Please verify your email address before signing in. Check your inbox for a confirmation email.');
         } else {
-          setEmailError('Error signing in. Please try again.');
+          setEmailError(`Error signing in: ${error.message}. Please try again.`);
         }
         return;
       }

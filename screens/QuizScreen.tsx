@@ -68,8 +68,7 @@ const QuizScreen: React.FC<QuizScreenProps> = ({
           ? require('@/assets/sounds/correct.mp3')
           : require('@/assets/sounds/wrong.mp3');
       
-      const sound = new Audio.Sound();
-      await sound.loadAsync(source);
+      const { sound } = await Audio.Sound.createAsync(source);
       await sound.playAsync();
       
       sound.setOnPlaybackStatusUpdate((status: any) => {

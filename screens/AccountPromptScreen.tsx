@@ -1,59 +1,22 @@
 import { MotiImage } from 'moti';
 import React from 'react';
 import { Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
 
 const safiLogo = require('@/assets/images/logo_new_black.png');
 
-interface MotivationScreenProps {
-  title?: string;
-  message?: string;
-  buttonText: string;
-  progress: number; // 1, 2, or 3
-  onContinue: () => void;
-  onBack?: () => void;
-  username?: string;
-  skippedAccount?: boolean;
+interface AccountPromptScreenProps {
+  onCreateAccount: () => void;
+  onContinueWithoutAccount: () => void;
 }
 
-const MotivationScreen: React.FC<MotivationScreenProps> = ({
-  title,
-  message,
-  buttonText,
-  progress,
-  onContinue,
-  onBack,
-  username,
-  skippedAccount,
+const AccountPromptScreen: React.FC<AccountPromptScreenProps> = ({
+  onCreateAccount,
+  onContinueWithoutAccount,
 }) => {
-  const safeTop = useSafeAreaInsets().top;
-  
-  // Determine title and message based on username and skippedAccount
-  let displayTitle = title;
-  let displayMessage = message;
-  
-  // Priority: skippedAccount check first, then username
-  if (skippedAccount) {
-    displayTitle = undefined;
-    displayMessage = `You can always create an account afterwards so you can track your progress. Let's continue to the sentences for now!`;
-  } else if (username) {
-    displayTitle = undefined;
-    displayMessage = `Hi ${username}, now you can track your progress! Let's move on to the sentences!`;
-  }
-  
   return (
     <View style={styles.container}>
-      {/* Header with back button */}
-      {onBack && (
-        <View style={[styles.header, { paddingTop: safeTop + 10 }]}>
-          <TouchableOpacity style={styles.backButton} onPress={onBack}>
-            <Text style={styles.backIcon}>←</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-      
       {/* Main content */}
       <View style={styles.body}>
         <View style={styles.introContainer}>
@@ -74,17 +37,21 @@ const MotivationScreen: React.FC<MotivationScreenProps> = ({
             <View style={styles.speechBubble}>
               <View style={styles.speechTailTopBorder} />
               <View style={styles.speechTailTop} />
-              {displayTitle && <Text style={styles.speechTitle}>{displayTitle}</Text>}
-              <Text style={styles.speechMessage}>{displayMessage}</Text>
+              <Text style={styles.speechMessage}>
+                To track your progress, we ask you to create an account.
+              </Text>
             </View>
           </View>
         </View>
       </View>
 
-      {/* Bottom button */}
+      {/* Bottom buttons */}
       <View style={styles.bottomContainer}>
-        <TouchableOpacity style={styles.continueButton} onPress={onContinue}>
-          <Text style={styles.continueButtonText}>{buttonText}</Text>
+        <TouchableOpacity style={styles.createAccountButton} onPress={onCreateAccount}>
+          <Text style={styles.createAccountButtonText}>CREATE ACCOUNT</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.continueButton} onPress={onContinueWithoutAccount}>
+          <Text style={styles.continueButtonText}>Continue without account</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -95,42 +62,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FFFFFF',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#F0F0F0',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  backIcon: {
-    fontSize: 20,
-    color: '#333',
-  },
-  progressContainer: {
-    width: '100%',
-    height: 8,
-    position: 'relative',
-    justifyContent: 'center',
-  },
-  progressBackground: {
-    position: 'absolute',
-    width: '100%',
-    height: '100%',
-    backgroundColor: '#E5E5E5',
-    borderRadius: 4,
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: '#00A86B',
-    borderRadius: 4,
   },
   body: {
     flex: 1,
@@ -166,13 +97,6 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
     alignItems: 'center',
-  },
-  speechTitle: {
-    fontSize: 22,
-    fontFamily: 'Baloo2-Bold',
-    color: '#00A86B',
-    textAlign: 'center',
-    marginBottom: 10,
   },
   speechMessage: {
     fontSize: 18,
@@ -211,19 +135,13 @@ const styles = StyleSheet.create({
     borderBottomColor: '#E5E5E5',
     zIndex: 1,
   },
-  messageText: {
-    fontSize: 18,
-    fontFamily: 'Baloo2-Medium',
-    color: '#333',
-    textAlign: 'center',
-    lineHeight: 26,
-  },
   bottomContainer: {
     paddingHorizontal: 32,
     paddingBottom: 40,
     paddingTop: 16,
+    gap: 12,
   },
-  continueButton: {
+  createAccountButton: {
     backgroundColor: '#00A86B',
     borderRadius: 16,
     paddingVertical: 18,
@@ -234,11 +152,25 @@ const styles = StyleSheet.create({
     shadowRadius: 5,
     elevation: 6,
   },
-  continueButtonText: {
+  createAccountButtonText: {
     color: '#FFFFFF',
     fontSize: 18,
     fontFamily: 'Baloo2-Bold',
   },
+  continueButton: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    paddingVertical: 18,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#E5E5E5',
+  },
+  continueButtonText: {
+    color: '#333',
+    fontSize: 18,
+    fontFamily: 'Baloo2-Medium',
+  },
 });
 
-export default MotivationScreen;
+export default AccountPromptScreen;
+
