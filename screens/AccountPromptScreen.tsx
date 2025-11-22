@@ -143,7 +143,7 @@ const styles = StyleSheet.create({
   },
   createAccountButton: {
     backgroundColor: '#00A86B',
-    borderRadius: 16,
+    borderRadius: 150,
     paddingVertical: 18,
     alignItems: 'center',
     shadowColor: '#000',
@@ -159,7 +159,7 @@ const styles = StyleSheet.create({
   },
   continueButton: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    borderRadius: 150,
     paddingVertical: 18,
     alignItems: 'center',
     borderWidth: 2,

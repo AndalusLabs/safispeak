@@ -1053,7 +1053,7 @@ speechTailTopBorder: {
   nextButton: {
     backgroundColor: '#00A86B',
     paddingVertical: 18,
-    borderRadius: 12,
+    borderRadius: 150,
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -1112,7 +1112,7 @@ speechTailTopBorder: {
   notificationButton: {
     flex: 1,
     height: 44,
-    borderRadius: 8,
+    borderRadius: 150,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1209,7 +1209,7 @@ speechTailTopBorder: {
     },
          notificationButtonTight: {
        paddingVertical: 10,
-       borderRadius: 10,
+       borderRadius: 150,
      },
      notificationButtonSelected: {
        backgroundColor: '#e6f7e6', // voorbeeld: lichtgroen
@@ -1224,7 +1224,7 @@ speechTailTopBorder: {
        backgroundColor: '#00A86B',
        paddingVertical: 20,
        paddingHorizontal: 40,
-       borderRadius: 16,
+       borderRadius: 150,
        elevation: 3,
        shadowColor: '#000',
        shadowOffset: { width: 0, height: 3 },

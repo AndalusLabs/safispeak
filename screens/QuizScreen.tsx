@@ -547,7 +547,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#00A86B',
     paddingVertical: 18,
     paddingHorizontal: 40,
-    borderRadius: 16,
+    borderRadius: 150,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -582,7 +582,7 @@ const styles = StyleSheet.create({
   },
   answerButton: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 15,
+    borderRadius: 150,
     paddingVertical: 20,
     paddingHorizontal: 20,
     shadowColor: '#000',
@@ -596,7 +596,7 @@ const styles = StyleSheet.create({
   },
   answerButtonSelected: {
     backgroundColor: '#E3F2FD',
-    borderRadius: 15,
+    borderRadius: 150,
     paddingVertical: 20,
     paddingHorizontal: 20,
     borderWidth: 2,
@@ -604,7 +604,7 @@ const styles = StyleSheet.create({
   },
   answerButtonCorrect: {
     backgroundColor: '#E8F5E8',
-    borderRadius: 15,
+    borderRadius: 150,
     paddingVertical: 20,
     paddingHorizontal: 20,
     borderWidth: 2,
@@ -612,7 +612,7 @@ const styles = StyleSheet.create({
   },
   answerButtonWrong: {
     backgroundColor: '#FFEBEE',
-    borderRadius: 15,
+    borderRadius: 150,
     paddingVertical: 20,
     paddingHorizontal: 20,
     borderWidth: 2,

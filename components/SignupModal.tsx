@@ -390,7 +390,7 @@ const styles = StyleSheet.create({
   },
   emailFormSubmitButton: {
     backgroundColor: '#00A86B',
-    borderRadius: 12,
+    borderRadius: 150,
     paddingVertical: 16,
     alignItems: 'center',
     marginTop: 20,
@@ -438,7 +438,7 @@ const styles = StyleSheet.create({
     borderColor: '#E0E0E0',
     paddingVertical: 16,
     paddingHorizontal: 20,
-    borderRadius: 12,
+    borderRadius: 150,
     marginBottom: 16,
     flexDirection: 'row',
     alignItems: 'center',

@@ -8,11 +8,12 @@ import SigninModal from '../components/SigninModal';
 import SignupModal from '../components/SignupModal';
 import { SUPABASE_CONFIG, supabaseAnonKey, supabaseUrl } from '../config/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { presentRevenueCatPaywall } from '../paywall';
+import { createAnonymousUser } from '../services/anonymousUserService';
 import { ProgressService } from '../services/progressService';
 import AccountPromptScreen from './AccountPromptScreen';
 import FlashcardScreen from './FlashcardScreen';
 import MotivationScreen from './MotivationScreen';
-import { presentRevenueCatPaywall } from '../paywall';
 import QuizScreen from './QuizScreen';
 import WelcomeScreen from './WelcomeScreen';
 
@@ -116,9 +117,23 @@ const LessonScreen: React.FC<LessonScreenProps> = ({ lesson, onBack }) => {
 
       if (!isActive) return;
 
-      if (purchased && isAuthenticated && user?.id) {
-        await ProgressService.markChapterCompleted(user.id, lesson.id);
-        setIsChapterCompleted(true);
+      if (purchased) {
+        // If user skipped account creation, create anonymous user
+        if (skippedAccount && !isAuthenticated) {
+          try {
+            const anonUserId = await createAnonymousUser();
+            console.log('Anonymous user created and logged into RevenueCat:', anonUserId);
+            // User is now premium via RevenueCat entitlements
+          } catch (error) {
+            console.error('Error creating anonymous user:', error);
+          }
+        }
+
+        // If authenticated, mark chapter as completed
+        if (isAuthenticated && user?.id) {
+          await ProgressService.markChapterCompleted(user.id, lesson.id);
+          setIsChapterCompleted(true);
+        }
       }
 
       setShowPaywall(false);
@@ -130,7 +145,7 @@ const LessonScreen: React.FC<LessonScreenProps> = ({ lesson, onBack }) => {
     return () => {
       isActive = false;
     };
-  }, [showPaywall, isAuthenticated, user?.id, lesson.id, onBack]);
+  }, [showPaywall, isAuthenticated, user?.id, lesson.id, skippedAccount, onBack]);
 
   // Handle query parameters
   useEffect(() => {
@@ -166,23 +181,22 @@ const LessonScreen: React.FC<LessonScreenProps> = ({ lesson, onBack }) => {
     if (currentQuestion < lesson.questions.length - 1) {
       const nextQuestion = currentQuestion + 1;
       
-      // Show account prompt after question 3 (words section), then signup or motivation screen
+      // Show motivation screen after question 3 (words section)
       if (currentQuestion === 2) { // After question 3 (index 2)
-        // Only show account prompt if not authenticated
-        if (!isAuthenticated) {
-          setShowAccountPrompt(true);
-        } else {
-          setShowMotivationScreen(true);
-        }
-        // Don't update currentQuestion yet, let account prompt/motivation screen handle it
+        setShowMotivationScreen(true);
+        // Don't update currentQuestion yet, let motivation screen handle it
       } else {
         setCurrentQuestion(nextQuestion);
       }
     } else {
       // All questions completed
-      // For chapter 1, show paywall before marking as completed
+      // For chapter 1, show account prompt (if not authenticated) or paywall
       if (lesson.id === 1) {
-        setShowPaywall(true);
+        if (!isAuthenticated) {
+          setShowAccountPrompt(true);
+        } else {
+          setShowPaywall(true);
+        }
       } else {
         // For other chapters, mark as completed and go back
         if (isAuthenticated && user?.id) {
@@ -409,7 +423,7 @@ const LessonScreen: React.FC<LessonScreenProps> = ({ lesson, onBack }) => {
     );
   }
 
-  // Show account prompt after words section (before signup or motivation screen)
+  // Show account prompt at the end of chapter 1 (before paywall)
   if (showAccountPrompt) {
     return (
       <AccountPromptScreen
@@ -422,7 +436,7 @@ const LessonScreen: React.FC<LessonScreenProps> = ({ lesson, onBack }) => {
           setShowAccountPrompt(false);
           setSkippedAccount(true);
           setWelcomeUsername(''); // Reset username when skipping account
-          setShowMotivationScreen(true);
+          setShowPaywall(true);
         }}
       />
     );
@@ -441,7 +455,7 @@ const LessonScreen: React.FC<LessonScreenProps> = ({ lesson, onBack }) => {
           onSuccess={(username: string) => {
             setWelcomeUsername(username);
             setShowWordsSectionSignup(false);
-            setShowMotivationScreen(true);
+            setShowPaywall(true);
           }}
         />
       </View>
@@ -452,18 +466,14 @@ const LessonScreen: React.FC<LessonScreenProps> = ({ lesson, onBack }) => {
   if (showMotivationScreen) {
     return (
       <MotivationScreen
+        title="Great Progress!"
+        message="You've completed the words, now let's go to the sentences!"
         buttonText="Continue to Sentences"
         progress={1}
         onContinue={() => {
           setShowMotivationScreen(false);
           setCurrentQuestion(3); // Continue to question 4 (index 3)
         }}
-        onBack={!isAuthenticated ? () => {
-          setShowMotivationScreen(false);
-          setShowAccountPrompt(true);
-        } : undefined}
-        username={welcomeUsername || undefined}
-        skippedAccount={skippedAccount}
       />
     );
   }
