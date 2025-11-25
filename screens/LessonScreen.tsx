@@ -2,7 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import { Audio } from 'expo-av';
 import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { Dimensions, StyleSheet, View } from 'react-native';
+import { Alert, Dimensions, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import SigninModal from '../components/SigninModal';
 import SignupModal from '../components/SignupModal';
@@ -11,6 +11,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { presentRevenueCatPaywall } from '../paywall';
 import { createAnonymousUser } from '../services/anonymousUserService';
 import { ProgressService } from '../services/progressService';
+import { markChapterCompletedLocal, removeChapterProgressLocal, setChapterProgressLocal } from '../services/lessonCompletionService';
+import { setPremiumUnlocked } from '../services/premiumService';
 import AccountPromptScreen from './AccountPromptScreen';
 import FlashcardScreen from './FlashcardScreen';
 import MotivationScreen from './MotivationScreen';
@@ -57,8 +59,8 @@ interface LessonScreenProps {
 
 const LessonScreen: React.FC<LessonScreenProps> = ({ lesson, onBack }) => {
   const safeTop = useSafeAreaInsets().top;
-  const { isAuthenticated, user } = useAuth();
-  const { showSignin, skipAuth, fromWelcome } = useLocalSearchParams<{ showSignin?: string; skipAuth?: string; fromWelcome?: string }>();
+  const { isAuthenticated, user, refreshProfile } = useAuth();
+  const { showSignin, skipAuth, fromWelcome, fromProfile } = useLocalSearchParams<{ showSignin?: string; skipAuth?: string; fromWelcome?: string; fromProfile?: string }>();
   
   // State management
   const [currentQuestion, setCurrentQuestion] = useState(0);
@@ -79,6 +81,7 @@ const LessonScreen: React.FC<LessonScreenProps> = ({ lesson, onBack }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isChapterCompleted, setIsChapterCompleted] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
+  const [redirectingToProfile, setRedirectingToProfile] = useState(false);
 
   // Flashcard data
   const flashcards = [
@@ -118,6 +121,7 @@ const LessonScreen: React.FC<LessonScreenProps> = ({ lesson, onBack }) => {
       if (!isActive) return;
 
       if (purchased) {
+        await setPremiumUnlocked(true);
         // If user skipped account creation, create anonymous user
         if (skippedAccount && !isAuthenticated) {
           try {
@@ -137,7 +141,7 @@ const LessonScreen: React.FC<LessonScreenProps> = ({ lesson, onBack }) => {
       }
 
       setShowPaywall(false);
-      onBack();
+      router.replace('/lesson-overview');
     };
 
     showRevenueCatPaywall();
@@ -156,6 +160,16 @@ const LessonScreen: React.FC<LessonScreenProps> = ({ lesson, onBack }) => {
       setShowSignupModal(true);
     }
   }, [showSignin, isAuthenticated, skipAuth]);
+
+  useEffect(() => {
+    if (redirectingToProfile && isAuthenticated) {
+      refreshProfile().finally(() => {
+        setRedirectingToProfile(false);
+        router.replace('/my-profile');
+      });
+    }
+  }, [redirectingToProfile, isAuthenticated, refreshProfile]);
+
 
   // Handle authentication state changes
   useEffect(() => {
@@ -180,6 +194,8 @@ const LessonScreen: React.FC<LessonScreenProps> = ({ lesson, onBack }) => {
   const handleNext = async () => {
     if (currentQuestion < lesson.questions.length - 1) {
       const nextQuestion = currentQuestion + 1;
+      const progressRatio = (currentQuestion + 1) / lesson.questions.length;
+      await setChapterProgressLocal(lesson.id, progressRatio);
       
       // Show motivation screen after question 3 (words section)
       if (currentQuestion === 2) { // After question 3 (index 2)
@@ -190,21 +206,28 @@ const LessonScreen: React.FC<LessonScreenProps> = ({ lesson, onBack }) => {
       }
     } else {
       // All questions completed
+      await markChapterCompletedLocal(lesson.id);
+      await removeChapterProgressLocal(lesson.id);
+      if (isAuthenticated && user?.id) {
+        await ProgressService.markChapterCompleted(user.id, lesson.id);
+        setIsChapterCompleted(true);
+      }
+
       // For chapter 1, show account prompt (if not authenticated) or paywall
       if (lesson.id === 1) {
         if (!isAuthenticated) {
+          setShowSignupModal(false);
+          setShowSigninModal(false);
+          setShowWordsSectionSignup(false);
           setShowAccountPrompt(true);
         } else {
           setShowPaywall(true);
         }
-      } else {
-        // For other chapters, mark as completed and go back
-        if (isAuthenticated && user?.id) {
-          await ProgressService.markChapterCompleted(user.id, lesson.id);
-          setIsChapterCompleted(true);
-        }
-        onBack();
+        return;
       }
+
+      // For other chapters, go back to overview/previous screen
+      router.replace('/lesson-overview');
     }
   };
 
@@ -226,6 +249,10 @@ const LessonScreen: React.FC<LessonScreenProps> = ({ lesson, onBack }) => {
     if (currentCardIndex > 0) {
       setCurrentCardIndex(currentCardIndex - 1);
     }
+  };
+
+  const openLessonOverview = () => {
+    router.push('/lesson-overview');
   };
 
   const playStimulus = async () => {
@@ -364,7 +391,20 @@ const LessonScreen: React.FC<LessonScreenProps> = ({ lesson, onBack }) => {
     }
   };
 
-  const handleSignupSuccess = (username: string) => {
+  const handleSignupSuccess = async (username: string) => {
+    if (fromProfile === 'true') {
+      setShowSignupModal(false);
+      setShowWelcomeScreen(false);
+      setRedirectingToProfile(true);
+      Alert.alert('Welcome', `Welkom ${username}!`, [
+        {
+          text: 'Ga naar mijn profiel',
+          onPress: () => {},
+        },
+      ]);
+      return;
+    }
+
     setWelcomeUsername(username);
     setShowWelcomeScreen(true);
   };
@@ -377,7 +417,7 @@ const LessonScreen: React.FC<LessonScreenProps> = ({ lesson, onBack }) => {
   };
 
   // Show signup modal if not authenticated
-  if (!isAuthenticated && showSignupModal) {
+  if (!isAuthenticated && showSignupModal && showAccountPrompt === false) {
     return (
       <View style={styles.container}>
         <SignupModal
@@ -516,6 +556,8 @@ const LessonScreen: React.FC<LessonScreenProps> = ({ lesson, onBack }) => {
       question={lesson.questions[currentQuestion]}
       questionNumber={currentQuestion + 1}
       totalQuestions={lesson.questions.length}
+      lessonId={lesson.id}
+      lessonTitle={lesson.title}
       onAnswer={handleAnswer}
       onNext={handleNext}
       onBack={onBack}
@@ -524,6 +566,7 @@ const LessonScreen: React.FC<LessonScreenProps> = ({ lesson, onBack }) => {
       words={words}
       phrases={phrases}
       isPlaying={isPlaying}
+      onOpenOverview={openLessonOverview}
     />
   );
 };

@@ -1,14 +1,11 @@
-import { createClient } from '@supabase/supabase-js';
 import * as WebBrowser from 'expo-web-browser';
 import React, { useEffect, useState } from 'react';
 import { Dimensions, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import Purchases from 'react-native-purchases';
+import { clearAnonymousProfileId, getAnonymousProfileId } from '../services/anonymousProfileStorage';
+import supabase from '../services/authService';
 
 const { width } = Dimensions.get('window');
-
-const supabase = createClient(
-  process.env.EXPO_PUBLIC_SUPABASE_URL!,
-  process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!
-);
 
 interface SignupModalProps {
   visible: boolean;
@@ -98,9 +95,22 @@ const SignupModal: React.FC<SignupModalProps> = ({ visible, onClose, onSuccess }
     setUsernameError('');
 
     try {
+      const anonymousProfileId = await getAnonymousProfileId();
+      const signupMetadata: Record<string, string> = {
+        preferred_username: username,
+      };
+
+      if (anonymousProfileId) {
+        signupMetadata.profile_id = anonymousProfileId;
+      }
+
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          emailRedirectTo: 'safispeak://auth/callback',
+          data: signupMetadata,
+        },
       });
 
       if (error) {
@@ -112,23 +122,32 @@ const SignupModal: React.FC<SignupModalProps> = ({ visible, onClose, onSuccess }
         return;
       }
 
-      if (data.user) {
-        // Insert profile with username
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert({
-            id: data.user.id,
-            username: username,
-            display_name: username,
+      const userId = data.user?.id;
+
+      if (userId) {
+        // Ensure we have an active session (signInWithPassword returns immediately when email confirmation is disabled)
+        if (!data.session) {
+          const { error: signinError } = await supabase.auth.signInWithPassword({
+            email,
+            password,
           });
 
-        if (profileError) {
-          console.log('Profile creation error:', profileError);
-          if (profileError.message.includes('duplicate key value')) {
-            setEmailError('Email already in use. Please use a different email address.');
-          } else {
-            setEmailError('Error creating profile. Please try again.');
+          if (signinError) {
+            console.log('Auto sign in error:', signinError);
+            setEmailError('Account created, please log in to continue.');
+            return;
           }
+        }
+
+        const postSignupResult = await upgradeProfileAfterSignup({
+          anonymousProfileId,
+          email,
+          username,
+          userId,
+        });
+
+        if (!postSignupResult.success) {
+          setEmailError(postSignupResult.message ?? 'Error creating profile. Please try again.');
           return;
         }
 
@@ -301,6 +320,86 @@ const SignupModal: React.FC<SignupModalProps> = ({ visible, onClose, onSuccess }
     </View>
   );
 };
+
+async function upgradeProfileAfterSignup({
+  anonymousProfileId,
+  userId,
+  email,
+  username,
+}: {
+  anonymousProfileId: string | null;
+  userId: string;
+  email: string;
+  username: string;
+}): Promise<{ success: boolean; message?: string }> {
+  try {
+    const timestamp = new Date().toISOString();
+
+    if (anonymousProfileId) {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          is_anonymous: false,
+          username,
+          display_name: username,
+          email,
+          auth_user_id: userId,
+          updated_at: timestamp,
+        })
+        .eq('id', anonymousProfileId);
+
+      if (error) {
+        console.log('Profile upgrade error:', error);
+        return { success: false, message: 'Error upgrading existing profile.' };
+      }
+
+      try {
+        await Purchases.logIn(anonymousProfileId);
+      } catch (purchaseError) {
+        console.log('RevenueCat re-login error:', purchaseError);
+      }
+
+      await deleteAutoCreatedProfile(userId);
+      await clearAnonymousProfileId();
+      return { success: true };
+    }
+
+    const { error } = await supabase
+      .from('profiles')
+      .upsert(
+        {
+          id: userId,
+          auth_user_id: userId,
+          username,
+          display_name: username,
+          email,
+          is_anonymous: false,
+        },
+        { onConflict: 'id' }
+      );
+
+    if (error) {
+      console.log('Profile creation error:', error);
+      return { success: false, message: 'Error creating profile. Please try again.' };
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.log('Unexpected profile upgrade error:', error);
+    return { success: false, message: 'Unexpected error. Please try again.' };
+  }
+}
+
+async function deleteAutoCreatedProfile(newAuthUserId: string) {
+  try {
+    const { error } = await supabase.from('profiles').delete().eq('id', newAuthUserId);
+    if (error && error.code !== 'PGRST116') {
+      console.log('Cleanup profile delete error:', error);
+    }
+  } catch (error) {
+    console.log('Unexpected cleanup profile delete error:', error);
+  }
+}
 
 const styles = StyleSheet.create({
   signupModal: {

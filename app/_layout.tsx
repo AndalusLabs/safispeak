@@ -30,6 +30,9 @@ export default function RootLayout() {
             <Stack.Screen name="index" options={{ headerShown: false }} />
             <Stack.Screen name="welcome" options={{ headerShown: false }} />
             <Stack.Screen name="onboarding-flow" options={{ headerShown: false }} />
+            <Stack.Screen name="lesson-overview" options={{ headerShown: false }} />
+            <Stack.Screen name="my-profile" options={{ headerShown: false }} />
+            <Stack.Screen name="account-prompt" options={{ headerShown: false }} />
             <Stack.Screen name="lessons/[id]" options={{ headerShown: false }} />
             <Stack.Screen name="+not-found" />
           </Stack>

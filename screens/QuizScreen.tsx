@@ -1,7 +1,9 @@
 import { Audio } from 'expo-av';
+import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import LottieView from 'lottie-react-native';
 import React, { useState } from 'react';
-import { Dimensions, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Dimensions, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width, height } = Dimensions.get('window');
@@ -30,6 +32,8 @@ interface QuizScreenProps {
   question: Question;
   questionNumber: number;
   totalQuestions: number;
+  lessonId: number;
+  lessonTitle: string;
   onAnswer: (selectedIndex: number) => void;
   onNext: () => void;
   onBack: () => void;
@@ -38,12 +42,15 @@ interface QuizScreenProps {
   words: Word[];
   phrases: Phrase[];
   isPlaying: boolean;
+  onOpenOverview?: () => void;
 }
 
 const QuizScreen: React.FC<QuizScreenProps> = ({
   question,
   questionNumber,
   totalQuestions,
+  lessonId,
+  lessonTitle,
   onAnswer,
   onNext,
   onBack,
@@ -52,6 +59,7 @@ const QuizScreen: React.FC<QuizScreenProps> = ({
   words,
   phrases,
   isPlaying,
+  onOpenOverview,
 }) => {
   const safeTop = useSafeAreaInsets().top;
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
@@ -60,6 +68,12 @@ const QuizScreen: React.FC<QuizScreenProps> = ({
   const [showXP, setShowXP] = useState(false);
   const [xpGained, setXpGained] = useState(0);
   const [score, setScore] = useState(0);
+  const [showLessonMenu, setShowLessonMenu] = useState(false);
+  const displayOverviewShortcut = lessonId >= 2 && typeof onOpenOverview === 'function';
+
+  const closeLessonMenu = () => {
+    setShowLessonMenu(false);
+  };
 
   const playSound = async (type: 'correct' | 'wrong') => {
     try {
@@ -117,6 +131,7 @@ const QuizScreen: React.FC<QuizScreenProps> = ({
   };
 
   const handleNext = () => {
+    closeLessonMenu();
     // If there's a selected answer, record it first
     if (selectedAnswer !== null) {
       onAnswer(selectedAnswer);
@@ -145,8 +160,46 @@ const QuizScreen: React.FC<QuizScreenProps> = ({
     return styles.answerButton;
   };
 
+  const handleMenuToggle = () => {
+    if (!displayOverviewShortcut) {
+      return;
+    }
+    
+    setShowLessonMenu((prev) => !prev);
+  };
+
+  const handleOverviewPress = () => {
+    if (!displayOverviewShortcut || !onOpenOverview) {
+      return;
+    }
+
+    closeLessonMenu();
+    onOpenOverview();
+  };
+
+  const handleProfilePress = () => {
+    if (!displayOverviewShortcut) {
+      return;
+    }
+
+    closeLessonMenu();
+    router.push('/my-profile');
+  };
+
+  const handleDictionaryPress = () => {
+    closeLessonMenu();
+    Alert.alert('My Dictionary', 'Binnenkort beschikbaar, we vullen dit snel met woorden.');
+  };
+
   return (
     <View style={styles.container}>
+      {showLessonMenu && displayOverviewShortcut && (
+        <TouchableOpacity
+          style={styles.menuBackdrop}
+          activeOpacity={1}
+          onPress={closeLessonMenu}
+        />
+      )}
       {/* Header */}
       <View style={[styles.header, { paddingTop: safeTop + 10 }]}>
         <TouchableOpacity style={styles.backButton} onPress={onBack}>
@@ -165,7 +218,38 @@ const QuizScreen: React.FC<QuizScreenProps> = ({
             />
           </View>
         </View>
-        <View style={styles.placeholderSpace} />
+        <View style={styles.headerActions}>
+          {displayOverviewShortcut ? (
+            <View style={styles.menuAnchor}>
+              <TouchableOpacity style={styles.menuButton} onPress={handleMenuToggle}>
+                <Ionicons name="menu" size={20} color="#333333" />
+              </TouchableOpacity>
+              {showLessonMenu && (
+                <View style={styles.menuCard}>
+                  <Text style={styles.menuLabel}>Currently in</Text>
+                  <Text style={styles.menuTitle}>{lessonTitle}</Text>
+                  <View style={styles.menuActions}>
+                    <TouchableOpacity style={styles.menuProfileAction} onPress={handleProfilePress}>
+                      <Ionicons name="person-circle-outline" size={18} color="#111827" />
+                      <Text style={styles.menuProfileText}>My Profile</Text>
+                      <Ionicons name="chevron-forward" size={16} color="#111827" />
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.menuPrimaryAction} onPress={handleOverviewPress}>
+                      <Ionicons name="map" size={16} color="#FFFFFF" />
+                      <Text style={styles.menuPrimaryActionText}>My Learning Path</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.menuSecondaryAction} onPress={handleDictionaryPress}>
+                      <Ionicons name="book-outline" size={16} color="#111827" />
+                      <Text style={styles.menuSecondaryActionText}>My Dictionary</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
+            </View>
+          ) : (
+            <View style={styles.placeholderSpace} />
+          )}
+        </View>
       </View>
 
       {/* Content */}
@@ -322,6 +406,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingBottom: 20,
+    zIndex: 20,
   },
   backButton: {
     width: 40,
@@ -338,6 +423,105 @@ const styles = StyleSheet.create({
   },
   placeholderSpace: {
     width: 40,
+  },
+  headerActions: {
+    width: 40,
+    alignItems: 'flex-end',
+    justifyContent: 'flex-start',
+  },
+  menuAnchor: {
+    minWidth: 40,
+    alignItems: 'flex-end',
+    position: 'relative',
+  },
+  menuButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F0F0F0',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  menuCard: {
+    position: 'absolute',
+    top: 48,
+    right: 0,
+    width: 220,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.12,
+    shadowRadius: 20,
+    elevation: 8,
+    zIndex: 30,
+  },
+  menuLabel: {
+    fontSize: 12,
+    color: '#94A3B8',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginBottom: 4,
+    fontFamily: 'Baloo2-Bold',
+  },
+  menuTitle: {
+    fontSize: 18,
+    color: '#111827',
+    fontFamily: 'Baloo2-Bold',
+    marginBottom: 4,
+  },
+  menuActions: {
+    gap: 10,
+  },
+  menuProfileAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#F1F5F9',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 14,
+  },
+  menuProfileText: {
+    flex: 1,
+    marginHorizontal: 10,
+    fontSize: 14,
+    color: '#111827',
+    fontFamily: 'Baloo2-Bold',
+  },
+  menuPrimaryAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#00A86B',
+    paddingVertical: 12,
+    borderRadius: 999,
+  },
+  menuPrimaryActionText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontFamily: 'Baloo2-Bold',
+  },
+  menuSecondaryAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    borderRadius: 999,
+    paddingVertical: 12,
+    backgroundColor: '#F8FAFB',
+  },
+  menuSecondaryActionText: {
+    color: '#111827',
+    fontSize: 14,
+    fontFamily: 'Baloo2-Bold',
+  },
+  menuBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(15,23,42,0.1)',
+    zIndex: 10,
   },
   progressContainer: {
     flex: 1,

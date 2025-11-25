@@ -2,6 +2,7 @@ import * as Crypto from 'expo-crypto';
 import { createClient } from '@supabase/supabase-js';
 import Purchases from 'react-native-purchases';
 import { supabaseAnonKey, supabaseUrl } from '../config/supabase';
+import { setAnonymousProfileId } from './anonymousProfileStorage';
 
 // Initialize Supabase client
 const supabase = createClient(supabaseUrl!, supabaseAnonKey!);
@@ -47,8 +48,10 @@ export async function createAnonymousUser(): Promise<string> {
       .insert({
         id: userId,
         is_anonymous: true,
+        auth_user_id: null,
         display_name: null,
         username: null,
+        email: null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       });
@@ -58,6 +61,7 @@ export async function createAnonymousUser(): Promise<string> {
       throw error;
     }
 
+    await setAnonymousProfileId(userId);
     console.log('Anonymous user created successfully in profiles:', userId);
     return userId;
   } catch (error) {

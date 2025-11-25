@@ -19,15 +19,20 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 
 export interface UserProfile {
   id: string;
-  display_name?: string;
-  created_at: string;
-  updated_at: string;
+  display_name?: string | null;
+  username?: string | null;
+  email?: string | null;
+  is_anonymous?: boolean | null;
+  auth_user_id?: string | null;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface AuthUser {
   id: string;
   email?: string;
   provider: string;
+  emailConfirmedAt?: string | null;
 }
 
 export class AuthService {
@@ -46,7 +51,7 @@ export class AuthService {
 
       // Create profile if user was created
       if (data.user) {
-        await this.createUserProfile(data.user.id, data.user.email || '');
+        await this.createUserProfile(data.user.id, { email: data.user.email });
       }
 
       return { data, error: null };
@@ -111,16 +116,28 @@ export class AuthService {
   }
 
   // Create user profile in profiles table
-  static async createUserProfile(userId: string, email: string) {
+  static async createUserProfile(
+    userId: string,
+    overrides?: Partial<Omit<UserProfile, 'id'>>
+  ) {
     try {
+      const timestamp = new Date().toISOString();
+      const payload: UserProfile = {
+        id: userId,
+        created_at: overrides?.created_at || timestamp,
+        updated_at: timestamp,
+        display_name: overrides?.display_name ?? null,
+        username: overrides?.username ?? null,
+        email: overrides?.email ?? null,
+        is_anonymous: overrides?.is_anonymous ?? false,
+        auth_user_id: overrides?.auth_user_id ?? userId,
+      };
+
       const { data, error } = await supabase
         .from('profiles')
-        .insert({
-          id: userId,
-          display_name: null,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        });
+        .upsert(payload, { onConflict: 'id' })
+        .select()
+        .maybeSingle();
 
       if (error) throw error;
       return { data, error: null };
@@ -154,12 +171,15 @@ export class AuthService {
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', userId)
-        .single();
+        .or(`id.eq.${userId},auth_user_id.eq.${userId}`)
+        .maybeSingle();
 
       if (error) throw error;
       return { data, error: null };
-    } catch (error) {
+    } catch (error: any) {
+      if (error?.code === 'PGRST116') {
+        return { data: null, error: null };
+      }
       console.error('Get profile error:', error);
       return { data: null, error };
     }

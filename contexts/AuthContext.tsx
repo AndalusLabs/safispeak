@@ -25,6 +25,23 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const isAuthenticated = !!user;
 
+  const clearAuthState = () => {
+    setUser(null);
+    setProfile(null);
+  };
+
+  const performSignOut = async (showLoader = true) => {
+    try {
+      if (showLoader) setLoading(true);
+      await AuthService.signOut();
+    } catch (error) {
+      console.error('Sign out error:', error);
+    } finally {
+      clearAuthState();
+      if (showLoader) setLoading(false);
+    }
+  };
+
   // Initialize auth state
   useEffect(() => {
     initializeAuth();
@@ -38,6 +55,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           id: session.user.id,
           email: session.user.email,
           provider: session.user.app_metadata?.provider || 'email',
+          emailConfirmedAt: session.user.email_confirmed_at,
         });
         await loadUserProfile(session.user.id);
       } else {
@@ -64,6 +82,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           id: currentUser.id,
           email: currentUser.email,
           provider: currentUser.app_metadata?.provider || 'email',
+          emailConfirmedAt: currentUser.email_confirmed_at,
         });
         await loadUserProfile(currentUser.id);
       }
@@ -75,19 +94,45 @@ export function AuthProvider({ children }: AuthProviderProps) {
   };
 
   const loadUserProfile = async (userId: string) => {
+    const handleMissingAccount = async () => {
+      console.warn('User account missing, signing out.');
+      await performSignOut(false);
+    };
+
     try {
-      const { data } = await AuthService.getUserProfile(userId);
+      const { data, error } = await AuthService.getUserProfile(userId);
+      if (error) {
+        console.error('Load profile error:', error);
+        await handleMissingAccount();
+        return;
+      }
+
       if (data) {
         setProfile(data);
+        return;
+      }
+
+      const { data: createdProfile, error: createError } = await AuthService.createUserProfile(userId, {
+        email: user?.email || undefined,
+      });
+
+      if (createError) {
+        console.error('Create profile error:', createError);
+        // Foreign key violation indicates auth user no longer exists
+        if (createError.code === '23503' || createError.message?.includes('foreign key')) {
+          await handleMissingAccount();
+        }
+        return;
+      }
+
+      if (createdProfile) {
+        setProfile(createdProfile);
       } else {
-        // Create profile if it doesn't exist
-        await AuthService.createUserProfile(userId, user?.email || '');
-        // Reload profile
-        const { data: newProfile } = await AuthService.getUserProfile(userId);
-        setProfile(newProfile);
+        await handleMissingAccount();
       }
     } catch (error) {
       console.error('Load profile error:', error);
+      await handleMissingAccount();
     }
   };
 
@@ -122,16 +167,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   };
 
   const signOut = async () => {
-    try {
-      setLoading(true);
-      await AuthService.signOut();
-      setUser(null);
-      setProfile(null);
-    } catch (error) {
-      console.error('Sign out error:', error);
-    } finally {
-      setLoading(false);
-    }
+    await performSignOut(true);
   };
 
   const refreshProfile = async () => {
