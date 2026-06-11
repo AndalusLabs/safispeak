@@ -1,24 +1,14 @@
 // Supabase Configuration
 
-// Read directly from environment variables
-const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+// Read directly from environment variables.
+// In preview mode (no .env) we fall back to placeholders instead of crashing —
+// the v2 redesign stores progress on-device and works without Supabase.
+const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
+const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || 'preview-placeholder-key';
 const supabaseBucket = process.env.EXPO_PUBLIC_SUPABASE_BUCKET || 'safispeak_audio';
 
-// Debug: Log the environment variables
-console.log('Environment variables:', {
-  supabaseUrl: supabaseUrl ? 'SET' : 'NOT_SET',
-  supabaseAnonKey: supabaseAnonKey ? 'SET' : 'NOT_SET',
-  supabaseBucket: supabaseBucket
-});
-
-// Validate required environment variables
-if (!supabaseUrl) {
-  throw new Error('EXPO_PUBLIC_SUPABASE_URL is required but not set in environment variables');
-}
-
-if (!supabaseAnonKey) {
-  throw new Error('EXPO_PUBLIC_SUPABASE_ANON_KEY is required but not set in environment variables');
+if (!process.env.EXPO_PUBLIC_SUPABASE_URL || !process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY) {
+  console.warn('Supabase env vars not set — running in preview mode without a backend.');
 }
 
 export const SUPABASE_CONFIG = {

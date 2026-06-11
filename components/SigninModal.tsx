@@ -2,13 +2,11 @@ import { createClient } from '@supabase/supabase-js';
 import * as WebBrowser from 'expo-web-browser';
 import React, { useState } from 'react';
 import { Dimensions, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { supabaseAnonKey, supabaseUrl } from '../config/supabase';
 
 const { width } = Dimensions.get('window');
 
-const supabase = createClient(
-  process.env.EXPO_PUBLIC_SUPABASE_URL!,
-  process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!
-);
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 interface SigninModalProps {
   visible: boolean;

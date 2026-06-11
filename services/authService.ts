@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
+import { Platform } from 'react-native';
 import { supabaseAnonKey, supabaseUrl } from '../config/supabase';
 
 // Validate environment variables before creating client
@@ -7,12 +8,15 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Supabase configuration is missing. Please check your .env file.');
 }
 
-// Create Supabase client with AsyncStorage for session persistence
+// Create Supabase client with AsyncStorage for session persistence.
+// On web/SSR there is no native AsyncStorage (and no `window` during
+// prerender) — let supabase fall back to its own storage handling there.
+const isNative = Platform.OS === 'ios' || Platform.OS === 'android';
 const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    storage: AsyncStorage,
+    ...(isNative ? { storage: AsyncStorage } : {}),
     autoRefreshToken: true,
-    persistSession: true,
+    persistSession: isNative,
     detectSessionInUrl: false,
   },
 });
