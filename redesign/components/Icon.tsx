@@ -6,7 +6,7 @@ import Svg, { Circle, G, Path, Rect } from 'react-native-svg';
 export type IconName =
   | 'home' | 'cards' | 'user' | 'gear' | 'flame' | 'star' | 'book' | 'target'
   | 'chevL' | 'chevR' | 'chevU' | 'check' | 'x' | 'lock' | 'volume' | 'bell'
-  | 'buzz' | 'refresh' | 'pencil' | 'arrowR' | 'play' | 'trophy';
+  | 'buzz' | 'refresh' | 'pencil' | 'arrowR' | 'play' | 'trophy' | 'chart';
 
 function glyph(name: IconName, color: string) {
   switch (name) {
@@ -93,6 +93,8 @@ function glyph(name: IconName, color: string) {
       return <Path d="M4.8 12h14M13.4 6.4l5.6 5.6-5.6 5.6" />;
     case 'play':
       return <Path fill={color} stroke="none" d="M8.4 5.6v12.8L18.6 12 8.4 5.6z" />;
+    case 'chart':
+      return <Path d="M4.5 19.5V10M10 19.5V4.5M15.5 19.5v-6.5M21 19.5H3" />;
     case 'trophy':
       return (
         <G>

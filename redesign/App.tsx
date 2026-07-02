@@ -17,7 +17,9 @@ import { Pager } from './components/Pager';
 import { TabBar } from './components/TabBar';
 import { Onboarding } from './screens/Onboarding';
 import { HomeScreen } from './screens/Home';
+import { LearnScreen } from './screens/Learn';
 import { PracticeScreen } from './screens/Practice';
+import { ProgressScreen } from './screens/Progress';
 import { ProfileScreen } from './screens/Profile';
 import { CardsScreen, LessonIntroSheet } from './screens/Lesson';
 import { QuizScreen } from './screens/Quiz';
@@ -131,11 +133,14 @@ export default function App() {
   return (
     <View style={styles.root}>
       <StatusBar style={overlay?.t === 'paywall' ? 'light' : 'dark'} />
-      <Pager index={tab} count={3} onIndex={setTab} width={width}>
+      <Pager index={tab} count={5} onIndex={setTab} width={width}>
         <HomeScreen name={s.name} xp={s.xp} streak={effectiveStreak(s)} completed={s.completed}
-          onNode={onNode} dailyDone={dailyGoalDone(s)} onGoPractice={() => setTab(1)} />
+          onNode={onNode} dailyDone={dailyGoalDone(s)}
+          onGoPractice={() => setTab(2)} onSeeAll={() => setTab(1)} />
+        <LearnScreen completed={s.completed} onNode={onNode} />
         <PracticeScreen completed={s.completed}
           onXp={(n) => setS((p) => ({ ...p, ...bumpStreak(p), xp: p.xp + n }))} />
+        <ProgressScreen xp={s.xp} streak={effectiveStreak(s)} completed={s.completed} accuracy={accuracy} />
         <ProfileScreen name={s.name} xp={s.xp} streak={effectiveStreak(s)} completed={s.completed}
           accuracy={accuracy} onSettings={() => openOverlay({ t: 'settings' })} />
       </Pager>

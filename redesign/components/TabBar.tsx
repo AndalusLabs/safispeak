@@ -1,4 +1,5 @@
-/* SafiSpeak redesign — floating pill tab bar (Learn / Practice / Profile). */
+/* SafiSpeak redesign — floating pill tab bar
+   (Home / Learn / Practice / Progress / Profile, per Ayoub's reference). */
 
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
@@ -8,9 +9,11 @@ import { haptic, sfx } from '../sfx';
 import Icon, { IconName } from './Icon';
 
 const TAB_DEFS: { id: number; icon: IconName; label: string }[] = [
-  { id: 0, icon: 'home', label: 'Learn' },
-  { id: 1, icon: 'cards', label: 'Practice' },
-  { id: 2, icon: 'user', label: 'Profile' },
+  { id: 0, icon: 'home', label: 'Home' },
+  { id: 1, icon: 'book', label: 'Learn' },
+  { id: 2, icon: 'cards', label: 'Practice' },
+  { id: 3, icon: 'chart', label: 'Progress' },
+  { id: 4, icon: 'user', label: 'Profile' },
 ];
 
 export function TabBar({ tab, onTab }: { tab: number; onTab: (i: number) => void }) {

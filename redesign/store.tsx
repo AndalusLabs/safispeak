@@ -102,7 +102,9 @@ export function effectiveStreak(s: AppState): number {
   return s.lastActiveDay === today || s.lastActiveDay === yesterday ? s.streak : 0;
 }
 
-const KEY = 'safiapp.v2';
+/* v3: Medina redesign + restored onboarding — fresh start so every device
+   sees the new onboarding (v2 progress is intentionally not migrated). */
+const KEY = 'safiapp.v3';
 
 type Store = {
   state: AppState;

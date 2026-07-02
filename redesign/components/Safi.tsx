@@ -1,10 +1,9 @@
-/* Safi — the SafiSpeak mascot. A glowing Moroccan lantern (fanous) with a
-   red fez, a friendly face, and stubby arms. Faithful port of the handoff's
-   components/mascot/Safi.jsx to react-native-svg + reanimated.
+/* Safi — the SafiSpeak mascot. A glowing Moroccan lantern (fanous) with
+   NO face and NO human features (Ayoub, June 11: "bla 3aynin awla lami7
+   d l'insan"). Character comes from the warm inner flame and motion.
 
-   Expressions: idle | happy | celebrate | sad | wink | thinking
-   Animations:  none | bob (idle float) | bounce (one-shot joy) | shake (wrong) | wave
-*/
+   Expressions map to the flame: idle | happy | celebrate (bright + rays)
+   | sad (dim) | wink | thinking. Animations: none | bob | bounce | shake | wave. */
 
 import React from 'react';
 import { ViewStyle } from 'react-native';
@@ -22,103 +21,23 @@ import Animated, {
 import Svg, { Circle, Ellipse, G, Line, Path, Rect } from 'react-native-svg';
 
 const AnimatedG = Animated.createAnimatedComponent(G);
+const AnimatedEllipse = Animated.createAnimatedComponent(Ellipse);
 
-const INK = '#0E5A30';
 const C = {
-  fez: '#E14B3B',
-  fezDk: '#B5392C',
-  fezHi: '#F47567',
-  body: '#1E8A4C',
-  bodyDk: INK,
-  bodyMid: '#23A05A',
-  glass: '#FFC83D',
+  metal: '#1F5C43',
+  metalDk: '#123B2C',
+  metalHi: '#2E7A58',
+  glass: '#F2C14E',
   glassHi: '#FFE08A',
-  glassDk: '#F2A91E',
-  ink: INK,
-  white: '#fff',
-  cheek: '#FF8B6B',
-  tassel: '#2A2A2A',
-  ray: '#FFD43B',
+  glassDk: '#DBA32B',
+  flame: '#FFF3CF',
+  flameCore: '#FFFDF4',
+  ray: '#F2C14E',
   shadow: '#E6DEC8',
 };
 
 export type SafiExpression = 'idle' | 'happy' | 'celebrate' | 'sad' | 'wink' | 'thinking';
 export type SafiAnimation = 'none' | 'bob' | 'bounce' | 'shake' | 'wave';
-
-function Eyes({ expr, blink }: { expr: SafiExpression; blink: boolean }) {
-  if (expr === 'happy' || expr === 'celebrate') {
-    return (
-      <G fill="none" stroke={C.ink} strokeWidth={7} strokeLinecap="round">
-        <Path d="M96 150 q12 -16 24 0" />
-        <Path d="M150 150 q12 -16 24 0" />
-      </G>
-    );
-  }
-  if (expr === 'sad') {
-    return (
-      <G>
-        <Circle cx={108} cy={153} r={11} fill={C.white} stroke={C.ink} strokeWidth={3.5} />
-        <Circle cx={110} cy={157} r={6} fill={C.ink} />
-        <Circle cx={162} cy={153} r={11} fill={C.white} stroke={C.ink} strokeWidth={3.5} />
-        <Circle cx={160} cy={157} r={6} fill={C.ink} />
-        <Path d="M96 140 q12 -5 22 3" fill="none" stroke={C.ink} strokeWidth={5} strokeLinecap="round" />
-        <Path d="M174 140 q-12 -5 -22 3" fill="none" stroke={C.ink} strokeWidth={5} strokeLinecap="round" />
-      </G>
-    );
-  }
-  if (expr === 'thinking') {
-    return (
-      <G>
-        <Circle cx={108} cy={150} r={12} fill={C.white} stroke={C.ink} strokeWidth={3.5} />
-        <Circle cx={104} cy={148} r={6.5} fill={C.ink} />
-        <Circle cx={162} cy={150} r={12} fill={C.white} stroke={C.ink} strokeWidth={3.5} />
-        <Circle cx={158} cy={148} r={6.5} fill={C.ink} />
-        <Path d="M150 136 q12 -3 22 2" fill="none" stroke={C.ink} strokeWidth={4.5} strokeLinecap="round" />
-      </G>
-    );
-  }
-  if (expr === 'wink') {
-    return (
-      <G>
-        <Circle cx={108} cy={150} r={12} fill={C.white} stroke={C.ink} strokeWidth={3.5} />
-        <Circle cx={111} cy={152} r={6.5} fill={C.ink} />
-        <Circle cx={113} cy={150} r={2.2} fill={C.white} />
-        <Path d="M150 152 q12 -14 24 0" fill="none" stroke={C.ink} strokeWidth={7} strokeLinecap="round" />
-      </G>
-    );
-  }
-  // idle / default — auto-blink squishes the eye group vertically around y=150
-  const s = blink ? 0.08 : 1;
-  return (
-    <G transform={[{ translateY: 150 * (1 - s) }, { scaleY: s }]}>
-      <Circle cx={108} cy={150} r={13} fill={C.white} stroke={C.ink} strokeWidth={3.5} />
-      <Circle cx={111} cy={153} r={7} fill={C.ink} />
-      <Circle cx={113.5} cy={150.5} r={2.4} fill={C.white} />
-      <Circle cx={162} cy={150} r={13} fill={C.white} stroke={C.ink} strokeWidth={3.5} />
-      <Circle cx={165} cy={153} r={7} fill={C.ink} />
-      <Circle cx={167.5} cy={150.5} r={2.4} fill={C.white} />
-    </G>
-  );
-}
-
-function Mouth({ expr }: { expr: SafiExpression }) {
-  if (expr === 'celebrate')
-    return (
-      <G>
-        <Path d="M118 178 q17 26 34 0 q-17 10 -34 0Z" fill={C.ink} />
-        <Path d="M124 182 q11 7 22 0Z" fill={C.fez} />
-      </G>
-    );
-  if (expr === 'happy')
-    return <Path d="M120 176 q15 18 30 0" fill="none" stroke={C.ink} strokeWidth={6} strokeLinecap="round" />;
-  if (expr === 'sad')
-    return <Path d="M122 184 q13 -12 26 0" fill="none" stroke={C.ink} strokeWidth={6} strokeLinecap="round" />;
-  if (expr === 'thinking')
-    return <Path d="M124 180 h20" fill="none" stroke={C.ink} strokeWidth={6} strokeLinecap="round" />;
-  if (expr === 'wink')
-    return <Path d="M122 176 q13 16 26 0" fill="none" stroke={C.ink} strokeWidth={6} strokeLinecap="round" />;
-  return <Path d="M124 176 q11 12 22 0" fill="none" stroke={C.ink} strokeWidth={6} strokeLinecap="round" />;
-}
 
 export function Safi({
   expression = 'idle',
@@ -135,9 +54,11 @@ export function Safi({
 }) {
   const reduceMotion = useReducedMotion();
   const height = size * (338 / 270);
+  const bright = expression === 'celebrate' || expression === 'happy' || expression === 'wink';
+  const dim = expression === 'sad';
   const showRays = expression === 'celebrate' || expression === 'happy';
 
-  /* whole-body animation (bob / bounce / shake / wave-bob) */
+  /* whole-body animation (bob / bounce / shake / wave≈bob) */
   const ty = useSharedValue(0);
   const tx = useSharedValue(0);
   const rot = useSharedValue(0);
@@ -158,8 +79,18 @@ export function Safi({
         ),
         -1,
       );
+      if (animation === 'wave') {
+        // gentle pendulum sway instead of a waving arm
+        rot.value = withRepeat(
+          withSequence(
+            withTiming(-4, { duration: 620, easing: Easing.inOut(Easing.ease) }),
+            withTiming(4, { duration: 620, easing: Easing.inOut(Easing.ease) }),
+          ),
+          -1,
+          true,
+        );
+      }
     } else if (animation === 'bounce') {
-      // 0% ty0 s1 · 30% ty-18% s(1.04,.96) · 55% ty0 s(.98,1.03) · 75% ty-6% · 100% ty0 s1 (700ms)
       ty.value = withSequence(
         withTiming(-height * 0.18, { duration: 210, easing: Easing.out(Easing.quad) }),
         withTiming(0, { duration: 175, easing: Easing.in(Easing.quad) }),
@@ -177,7 +108,6 @@ export function Safi({
         withTiming(1, { duration: 315 }),
       );
     } else if (animation === 'shake') {
-      // ±5% translate with ±3° rotate, 500ms
       tx.value = withSequence(
         withTiming(-size * 0.05, { duration: 100 }),
         withTiming(size * 0.05, { duration: 100 }),
@@ -205,22 +135,21 @@ export function Safi({
     ],
   }));
 
-  /* wave — right arm rotates -52° at the shoulder (620ms loop) */
-  const arm = useSharedValue(0);
+  /* flame flicker — the lantern's "life" (1.4s loop) */
+  const flame = useSharedValue(1);
   React.useEffect(() => {
-    cancelAnimation(arm);
-    arm.value = 0;
-    if (animation === 'wave' && !reduceMotion) {
-      arm.value = withRepeat(
-        withSequence(
-          withTiming(-52, { duration: 310, easing: Easing.inOut(Easing.ease) }),
-          withTiming(0, { duration: 310, easing: Easing.inOut(Easing.ease) }),
-        ),
-        -1,
-      );
-    }
-  }, [animation, reduceMotion, arm]);
-  const armProps = useAnimatedProps(() => ({ rotation: arm.value }));
+    cancelAnimation(flame);
+    flame.value = 1;
+    if (reduceMotion) return;
+    flame.value = withRepeat(
+      withSequence(
+        withTiming(dim ? 0.45 : bright ? 0.92 : 0.72, { duration: 700, easing: Easing.inOut(Easing.ease) }),
+        withTiming(dim ? 0.6 : 1, { duration: 700, easing: Easing.inOut(Easing.ease) }),
+      ),
+      -1,
+    );
+  }, [bright, dim, reduceMotion, flame]);
+  const flameProps = useAnimatedProps(() => ({ opacity: flame.value }));
 
   /* rays pulse (1.3s loop) */
   const ray = useSharedValue(1);
@@ -239,17 +168,6 @@ export function Safi({
   }, [showRays, reduceMotion, ray]);
   const rayProps = useAnimatedProps(() => ({ opacity: ray.value }));
 
-  /* auto-blink every ~4.4s (idle eyes only) */
-  const [blink, setBlink] = React.useState(false);
-  React.useEffect(() => {
-    if (reduceMotion || (expression !== 'idle')) return;
-    const iv = setInterval(() => {
-      setBlink(true);
-      setTimeout(() => setBlink(false), 130);
-    }, 4400);
-    return () => clearInterval(iv);
-  }, [expression, reduceMotion]);
-
   return (
     <Animated.View style={[{ width: size, height }, bodyStyle, style]}>
       <Svg viewBox="0 0 270 338" width={size} height={height}>
@@ -266,46 +184,42 @@ export function Safi({
         )}
         <Ellipse cx={135} cy={322} rx={78} ry={12} fill={C.shadow} />
 
-        {/* arms */}
-        <Path d="M58 196 q-26 4 -30 30" fill="none" stroke={C.bodyDk} strokeWidth={11} strokeLinecap="round" />
-        <Circle cx={26} cy={230} r={9} fill={C.body} stroke={C.bodyDk} strokeWidth={4} />
-        <AnimatedG animatedProps={armProps} origin="212, 196">
-          <Path d="M212 196 q26 4 30 30" fill="none" stroke={C.bodyDk} strokeWidth={11} strokeLinecap="round" />
-          <Circle cx={244} cy={230} r={9} fill={C.body} stroke={C.bodyDk} strokeWidth={4} />
-        </AnimatedG>
+        {/* hanging ring + finial */}
+        <Circle cx={135} cy={34} r={13} fill="none" stroke={C.metalDk} strokeWidth={7} />
+        <Circle cx={135} cy={56} r={7} fill={C.glassDk} stroke={C.metalDk} strokeWidth={4} />
 
-        {/* fez */}
-        <G transform="translate(0 8) rotate(-9 150 70)">
-          <Path d="M196 36 q22 6 18 40" fill="none" stroke={C.tassel} strokeWidth={4} />
-          <Circle cx={214} cy={78} r={8} fill={C.tassel} />
-          <Path d="M104 64 L196 64 L184 30 Q150 18 116 30 Z" fill={C.fez} stroke={C.ink} strokeWidth={5} strokeLinejoin="round" />
-          <Path d="M116 30 Q150 18 184 30 Q150 40 116 30Z" fill={C.fezHi} />
-          <Rect x={100} y={60} width={100} height={12} rx={6} fill={C.fezDk} stroke={C.ink} strokeWidth={5} />
-        </G>
-
-        {/* dome */}
-        <Path d="M84 116 Q135 64 186 116 Z" fill={C.bodyMid} stroke={C.ink} strokeWidth={5} strokeLinejoin="round" />
-        <Path d="M100 110 Q135 80 170 110" fill="none" stroke={C.bodyDk} strokeWidth={4} opacity={0.6} />
-        <Circle cx={135} cy={98} r={4.5} fill={C.glass} />
-        <Rect x={80} y={114} width={110} height={14} rx={7} fill={C.body} stroke={C.ink} strokeWidth={5} />
+        {/* dome cap */}
+        <Path d="M84 116 Q135 58 186 116 Z" fill={C.metalHi} stroke={C.metalDk} strokeWidth={5} strokeLinejoin="round" />
+        <Path d="M100 110 Q135 78 170 110" fill="none" stroke={C.metalDk} strokeWidth={4} opacity={0.55} />
+        {/* pierced dome dots (fanous filigree) */}
+        <Circle cx={118} cy={98} r={3.2} fill={C.metalDk} opacity={0.8} />
+        <Circle cx={135} cy={88} r={3.2} fill={C.metalDk} opacity={0.8} />
+        <Circle cx={152} cy={98} r={3.2} fill={C.metalDk} opacity={0.8} />
+        <Rect x={80} y={114} width={110} height={14} rx={7} fill={C.metal} stroke={C.metalDk} strokeWidth={5} />
 
         {/* glass body */}
-        <Path d="M74 130 L196 130 L186 250 Q135 264 84 250 Z" fill={C.glass} stroke={C.ink} strokeWidth={5} strokeLinejoin="round" />
+        <Path d="M74 130 L196 130 L186 250 Q135 264 84 250 Z" fill={C.glass} stroke={C.metalDk} strokeWidth={5} strokeLinejoin="round" />
+        {/* glass shine + shade */}
         <Path d="M88 134 L96 246 Q90 244 86 242 Z" fill={C.glassHi} opacity={0.7} />
         <Path d="M182 134 L174 246 Q180 244 184 242 Z" fill={C.glassDk} opacity={0.5} />
 
-        {/* cheeks */}
-        <Ellipse cx={92} cy={172} rx={10} ry={7} fill={C.cheek} opacity={0.65} />
-        <Ellipse cx={178} cy={172} rx={10} ry={7} fill={C.cheek} opacity={0.65} />
+        {/* inner flame — Safi's life, instead of a face */}
+        <AnimatedEllipse animatedProps={flameProps} cx={135} cy={186} rx={34} ry={44} fill={C.flame} />
+        <Ellipse cx={135} cy={192} rx={16} ry={24} fill={C.flameCore} />
+        <Path d="M135 156 q10 14 0 26 q-10 -12 0 -26Z" fill={C.glassDk} opacity={0.55} />
 
-        {/* face */}
-        <Eyes expr={expression} blink={blink} />
-        <Mouth expr={expression} />
+        {/* arched frame bars over the glass (Moroccan arch silhouette) */}
+        <Path d="M108 250 L108 176 Q108 152 135 148 Q162 152 162 176 L162 250"
+          fill="none" stroke={C.metal} strokeWidth={5} opacity={0.75} />
+        <Line x1={135} y1={130} x2={135} y2={148} stroke={C.metal} strokeWidth={4} opacity={0.6} />
 
         {/* base */}
-        <Rect x={92} y={250} width={86} height={18} rx={6} fill={C.body} stroke={C.ink} strokeWidth={5} />
-        <Path d="M104 268 L166 268 L176 296 L94 296 Z" fill={C.glass} stroke={C.ink} strokeWidth={5} strokeLinejoin="round" />
-        <Rect x={86} y={294} width={98} height={14} rx={7} fill={C.body} stroke={C.ink} strokeWidth={5} />
+        <Rect x={92} y={250} width={86} height={18} rx={6} fill={C.metal} stroke={C.metalDk} strokeWidth={5} />
+        <Path d="M104 268 L166 268 L176 296 L94 296 Z" fill={C.glass} stroke={C.metalDk} strokeWidth={5} strokeLinejoin="round" />
+        <Circle cx={120} cy={282} r={3} fill={C.metalDk} opacity={0.7} />
+        <Circle cx={135} cy={282} r={3} fill={C.metalDk} opacity={0.7} />
+        <Circle cx={150} cy={282} r={3} fill={C.metalDk} opacity={0.7} />
+        <Rect x={86} y={294} width={98} height={14} rx={7} fill={C.metal} stroke={C.metalDk} strokeWidth={5} />
       </Svg>
     </Animated.View>
   );
