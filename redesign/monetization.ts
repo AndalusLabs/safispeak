@@ -20,8 +20,9 @@ const RC_TEST_KEY = 'test_KVdWdYpNXefKtlZjlIclSslSNAJ';
 const RC_API_KEY_IOS = RC_TEST_KEY;
 const RC_API_KEY_ANDROID = RC_TEST_KEY;
 
-/** Entitlement that unlocks the app (must match the RevenueCat dashboard). */
-const ENTITLEMENT_ID = 'premium';
+/** Entitlement that unlocks the app — matches the RevenueCat dashboard
+    (project "SafiSpeak" / entitlement lookup key "SafiSpeak Pro"). */
+const ENTITLEMENT_ID = 'SafiSpeak Pro';
 
 export type PaywallPrice = { priceString: string; period: 'month' };
 
