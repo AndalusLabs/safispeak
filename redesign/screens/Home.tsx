@@ -407,10 +407,10 @@ const styles = StyleSheet.create({
   },
   heroArt: {
     position: 'absolute',
-    right: -18,
-    bottom: -4,
-    width: 218,
-    height: 194,
+    right: -8,
+    bottom: -2,
+    width: 172,
+    height: 152,
   },
   heroKick: {
     fontFamily: font.extra,
@@ -426,7 +426,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   heroBar: {
-    width: 190,
+    width: 158,
     height: 9,
     borderRadius: 999,
     backgroundColor: 'rgba(0,0,0,0.28)',
@@ -555,10 +555,10 @@ const styles = StyleSheet.create({
   },
   goalArt: {
     position: 'absolute',
-    right: 14,
-    top: -12,
-    width: 64,
-    height: 132,
+    right: 12,
+    top: -6,
+    width: 46,
+    height: 100,
   },
   goalTitle: {
     fontFamily: font.extra,
@@ -606,7 +606,7 @@ const styles = StyleSheet.create({
   },
   goalBtn: {
     position: 'absolute',
-    right: 16,
+    right: 68,
     bottom: 16,
     flexDirection: 'row',
     alignItems: 'center',

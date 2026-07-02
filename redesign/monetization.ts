@@ -13,8 +13,12 @@
 
 import { Platform } from 'react-native';
 
-const RC_API_KEY_IOS = 'REPLACE_WITH_REVENUECAT_IOS_KEY';
-const RC_API_KEY_ANDROID = 'REPLACE_WITH_REVENUECAT_ANDROID_KEY';
+/* RevenueCat Test Store key (works on both platforms, sandbox only).
+   ⚠️ Before store release: replace with the app-specific production keys
+   from the RevenueCat dashboard — appl_… for iOS, goog_… for Android. */
+const RC_TEST_KEY = 'test_KVdWdYpNXefKtlZjlIclSslSNAJ';
+const RC_API_KEY_IOS = RC_TEST_KEY;
+const RC_API_KEY_ANDROID = RC_TEST_KEY;
 
 /** Entitlement that unlocks the app (must match the RevenueCat dashboard). */
 const ENTITLEMENT_ID = 'premium';
@@ -97,7 +101,11 @@ export async function purchaseMonthly(): Promise<PurchaseResult> {
     return { ok: false, message: 'Purchases are not available yet. Please try again later.' };
   }
   const Purchases = rc();
-  if (!Purchases) return { ok: false, message: 'Purchases module unavailable.' };
+  if (!Purchases) {
+    // native module missing (e.g. Expo Go) — keep the flow testable in dev
+    if (__DEV__) return { ok: true };
+    return { ok: false, message: 'Purchases module unavailable.' };
+  }
   try {
     await initPurchases();
     const offerings = await Purchases.getOfferings();
