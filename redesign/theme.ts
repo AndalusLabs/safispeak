@@ -5,22 +5,22 @@ import { Easing } from 'react-native-reanimated';
 
 export const colors = {
   // surfaces
-  appBg: '#FBF6EC',
+  appBg: '#FAF7F0',
   card: '#FFFFFF',
-  hairline: '#F0E9D8',
+  hairline: '#EFE9DC',
 
-  // brand greens
-  brand: '#00A86B',
-  brandPress: '#00845A',
-  brandDeep: '#0B6B45',
-  heroGradFrom: '#0B7A4F',
-  heroGradTo: '#00A86B',
+  // brand greens — Medina palette (Ayoub's reference, July 2026)
+  brand: '#1F5C43',
+  brandPress: '#164835',
+  brandDeep: '#123B2C',
+  heroGradFrom: '#2A6E51',
+  heroGradTo: '#1B523B',
 
   // gold
-  gold: '#FFC83D',
-  gold500: '#FFC107',
-  goldTint: '#FFF3D6',
-  goldText: '#B8860B',
+  gold: '#F2C14E',
+  gold500: '#EDB63A',
+  goldTint: '#F9EED3',
+  goldText: '#8A6D13',
 
   // red (errors / fez)
   red: '#E14B3B',
@@ -28,8 +28,8 @@ export const colors = {
   redTint: '#FDE3DF',
 
   // success tint
-  greenTint: '#DDF2E7',
-  greenText: '#0E6B45',
+  greenTint: '#E4EEE2',
+  greenText: '#1F5C43',
 
   // ink
   ink900: '#1F2A37',

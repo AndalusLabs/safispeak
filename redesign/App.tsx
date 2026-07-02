@@ -11,7 +11,8 @@ import Animated, {
 import { colors, motion } from './theme';
 import { haptic, setSfxGates, sfx } from './sfx';
 import { Lesson } from './lessons';
-import { bumpStreak, effectiveStreak, useAppStore } from './store';
+import { bumpDailyGoal, bumpStreak, dailyGoalDone, effectiveStreak, useAppStore } from './store';
+import { checkPremium, initPurchases } from './monetization';
 import { Pager } from './components/Pager';
 import { TabBar } from './components/TabBar';
 import { Onboarding } from './screens/Onboarding';
@@ -22,13 +23,18 @@ import { CardsScreen, LessonIntroSheet } from './screens/Lesson';
 import { QuizScreen } from './screens/Quiz';
 import { CelebrateScreen } from './screens/Celebrate';
 import { SettingsScreen } from './screens/Settings';
+import { PaywallScreen } from './screens/Paywall';
+
+/* Ayoub's monetization model: lesson 1 free → hard paywall before lesson 2. */
+const FREE_LESSONS = 1;
 
 type Overlay =
   | { t: 'intro'; lesson: Lesson; redo: boolean }
   | { t: 'cards'; lesson: Lesson }
   | { t: 'quiz'; lesson: Lesson }
   | { t: 'celebrate'; lesson: Lesson; result: { correct: number; total: number } }
-  | { t: 'settings' };
+  | { t: 'settings' }
+  | { t: 'paywall'; lesson: Lesson };
 
 export default function App() {
   const { width } = useWindowDimensions();
@@ -48,6 +54,18 @@ export default function App() {
     setSfxGates(s.settings);
   }, [s.settings]);
 
+  /* RevenueCat: init once, and re-sync an existing subscription (reinstalls) */
+  React.useEffect(() => {
+    if (!ready) return;
+    initPurchases()
+      .then(() => checkPremium())
+      .then((owned) => {
+        if (owned) setS((p) => (p.premium ? p : { ...p, premium: true }));
+      })
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready]);
+
   const setTab = (n: number) => {
     setTabRaw(n);
     setS((p) => ({ ...p, nav: { tab: n } }));
@@ -63,6 +81,10 @@ export default function App() {
 
   const onNode = (lesson: Lesson, locked: boolean) => {
     if (locked) return; // shake + sound handled by the node itself
+    if (!s.premium && lesson.id >= FREE_LESSONS) {
+      openOverlay({ t: 'paywall', lesson });
+      return;
+    }
     openOverlay({ t: 'intro', lesson, redo: s.completed.includes(lesson.id) });
   };
 
@@ -79,6 +101,7 @@ export default function App() {
     setS((p) => ({
       ...p,
       ...bumpStreak(p),
+      ...bumpDailyGoal(p),
       xp: p.xp + xpGain,
       completed: p.completed.includes(lesson.id) ? p.completed : [...p.completed, lesson.id],
     }));
@@ -104,9 +127,10 @@ export default function App() {
 
   return (
     <View style={styles.root}>
-      <StatusBar style={tab === 0 && !overlay ? 'light' : 'dark'} />
+      <StatusBar style={overlay?.t === 'paywall' ? 'light' : 'dark'} />
       <Pager index={tab} count={3} onIndex={setTab} width={width}>
-        <HomeScreen name={s.name} xp={s.xp} streak={effectiveStreak(s)} completed={s.completed} onNode={onNode} />
+        <HomeScreen name={s.name} xp={s.xp} streak={effectiveStreak(s)} completed={s.completed}
+          onNode={onNode} dailyDone={dailyGoalDone(s)} onGoPractice={() => setTab(1)} />
         <PracticeScreen completed={s.completed}
           onXp={(n) => setS((p) => ({ ...p, ...bumpStreak(p), xp: p.xp + n }))} />
         <ProfileScreen name={s.name} xp={s.xp} streak={effectiveStreak(s)} completed={s.completed}
@@ -132,6 +156,15 @@ export default function App() {
           {overlay.t === 'celebrate' && (
             <CelebrateScreen lesson={overlay.lesson} result={overlay.result}
               onClose={(xpGain) => closeCelebrate(overlay.lesson, xpGain)} />
+          )}
+          {overlay.t === 'paywall' && (
+            <PaywallScreen
+              onClose={() => { setOverlay(null); setClosing(false); }}
+              onUnlocked={() => {
+                const target = overlay.lesson;
+                setS((p) => ({ ...p, premium: true }));
+                openOverlay({ t: 'intro', lesson: target, redo: s.completed.includes(target.id) });
+              }} />
           )}
           {overlay.t === 'settings' && (
             <SettingsScreen settings={s.settings} width={width}

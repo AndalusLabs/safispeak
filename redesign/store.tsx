@@ -25,6 +25,8 @@ export type AppState = {
   correctAnswers: number;
   settings: AppSettings;
   nav: { tab: number };
+  premium: boolean; // unlocked via RevenueCat purchase (lesson 1 is free)
+  dailyGoal: { day: string; done: number }; // lessons finished today
 };
 
 export const APP_INITIAL: AppState = {
@@ -33,7 +35,27 @@ export const APP_INITIAL: AppState = {
   answers: 0, correctAnswers: 0,
   settings: { sound: true, haptics: true, reminder: false, remTime: '20:00' },
   nav: { tab: 0 },
+  premium: false,
+  dailyGoal: { day: '', done: 0 },
 };
+
+export const DAILY_GOAL_TARGET = 2;
+
+/* dailyGoal after finishing a lesson right now (resets when the day changes) */
+export function bumpDailyGoal(s: AppState): Pick<AppState, 'dailyGoal'> {
+  const today = todayString();
+  return {
+    dailyGoal: {
+      day: today,
+      done: s.dailyGoal.day === today ? s.dailyGoal.done + 1 : 1,
+    },
+  };
+}
+
+/* lessons done today (0 once the day has rolled over) */
+export function dailyGoalDone(s: AppState): number {
+  return s.dailyGoal.day === todayString() ? s.dailyGoal.done : 0;
+}
 
 /* ---- streak helpers ---- */
 
