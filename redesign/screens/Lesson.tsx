@@ -244,9 +244,9 @@ const styles = StyleSheet.create({
     marginBottom: 18,
   },
   wordChip: {
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.hairline,
+    backgroundColor: colors.goldTint,
+    borderWidth: 1.5,
+    borderColor: 'rgba(242,193,78,0.55)',
     borderRadius: 14,
     paddingVertical: 8,
     paddingHorizontal: 13,
@@ -255,7 +255,7 @@ const styles = StyleSheet.create({
   wordChipD: {
     fontFamily: font.extra,
     fontSize: 15,
-    color: colors.ink900,
+    color: colors.brand,
   },
   wordChipE: {
     fontFamily: font.semibold,

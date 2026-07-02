@@ -187,7 +187,8 @@ function Dot({ on }: { on: boolean }) {
 }
 
 /* ---- confetti burst (ported from the canvas version) ---- */
-const CONFETTI_COLORS = ['#00A86B', '#FFC83D', '#E14B3B', '#1CB0F6', '#FFFFFF', '#F39C2B'];
+/* Medina palette confetti (deep green / gold / fez red / terracotta) */
+const CONFETTI_COLORS = ['#1F5C43', '#F2C14E', '#E14B3B', '#E0862E', '#FFFFFF', '#2E7A58'];
 const FRAMES = 190; // ≈ duration / 16.7ms
 
 type Particle = {

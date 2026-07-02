@@ -197,12 +197,16 @@ function FlipCard({ card, flipped }: { card: Word; flipped: boolean }) {
   return (
     <View style={styles.cardWrap}>
       <Animated.View style={[styles.face, frontStyle]}>
+        <View style={styles.faceBand} />
+        <View style={styles.arch} pointerEvents="none" />
         <Text style={styles.eyebrow}>DARIJA</Text>
         <Text style={styles.word}>{card.d}</Text>
         <Text style={styles.ph}>{card.ph}</Text>
         <Text style={styles.tip}>Tap to flip</Text>
       </Animated.View>
       <Animated.View style={[styles.face, styles.faceBack, backStyle]}>
+        <View style={[styles.faceBand, { backgroundColor: colors.brand }]} />
+        <View style={[styles.arch, { borderColor: 'rgba(31,92,67,0.10)' }]} pointerEvents="none" />
         <Text style={styles.eyebrow}>ENGLISH</Text>
         <Text style={styles.word}>{card.e}</Text>
         <Text style={styles.ph}>“{card.d}”</Text>
@@ -239,6 +243,28 @@ const styles = StyleSheet.create({
   },
   faceBack: {
     backgroundColor: '#FFF8E6', // cream gradient stand-in (#FFFDF6 → #FFF3D6)
+  },
+  /* Medina accents: gold header band + arch watermark behind the word */
+  faceBand: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 7,
+    borderTopLeftRadius: 26,
+    borderTopRightRadius: 26,
+    backgroundColor: colors.gold,
+  },
+  arch: {
+    position: 'absolute',
+    bottom: -34,
+    width: 158,
+    height: 210,
+    borderTopLeftRadius: 90,
+    borderTopRightRadius: 90,
+    borderWidth: 3,
+    borderColor: 'rgba(242,193,78,0.28)',
+    backgroundColor: 'rgba(242,193,78,0.06)',
   },
   eyebrow: {
     fontFamily: font.extra,
