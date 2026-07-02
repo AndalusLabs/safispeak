@@ -116,10 +116,13 @@ export default function App() {
     return (
       <View style={styles.root}>
         <StatusBar style="dark" />
-        <Onboarding onDone={(name, goal) => {
+        <Onboarding onDone={(name, goal, profile) => {
           sfx('win');
           haptic('success');
-          setS((p) => ({ ...p, onboarded: true, name, goal }));
+          setS((p) => ({
+            ...p, onboarded: true, name, goal, profile,
+            settings: { ...p.settings, reminder: profile.reminderChosen },
+          }));
         }} />
       </View>
     );

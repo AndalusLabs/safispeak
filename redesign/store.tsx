@@ -6,6 +6,15 @@ import React from 'react';
 
 export type Goal = 'travel' | 'family' | 'culture' | 'fun';
 
+/* answers from the original onboarding questions (restored per Ayoub) */
+export type OnboardingProfile = {
+  discoverSource: string;
+  motivations: string[];
+  level: number; // 1..5 self-assessed Darija level
+  dailyMinutes: number; // 5 | 10 | 15 | 20
+  reminderChosen: boolean;
+};
+
 export type AppSettings = {
   sound: boolean;
   haptics: boolean;
@@ -27,6 +36,7 @@ export type AppState = {
   nav: { tab: number };
   premium: boolean; // unlocked via RevenueCat purchase (lesson 1 is free)
   dailyGoal: { day: string; done: number }; // lessons finished today
+  profile: OnboardingProfile | null; // onboarding answers (conversion data)
 };
 
 export const APP_INITIAL: AppState = {
@@ -37,6 +47,7 @@ export const APP_INITIAL: AppState = {
   nav: { tab: 0 },
   premium: false,
   dailyGoal: { day: '', done: 0 },
+  profile: null,
 };
 
 export const DAILY_GOAL_TARGET = 2;
