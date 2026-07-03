@@ -121,6 +121,19 @@ export async function purchaseMonthly(): Promise<PurchaseResult> {
   }
 }
 
+/** Tie purchases to the Supabase user id so they follow the account. */
+export async function rcLogIn(userId: string): Promise<void> {
+  if (!isConfigured()) return;
+  const Purchases = rc();
+  if (!Purchases) return;
+  try {
+    await initPurchases();
+    await Purchases.logIn(userId);
+  } catch {
+    // identity sync must never crash the app
+  }
+}
+
 /** Restore purchases (required by the app stores). */
 export async function restorePurchases(): Promise<PurchaseResult> {
   if (!isConfigured()) {

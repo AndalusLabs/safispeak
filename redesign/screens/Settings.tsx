@@ -16,7 +16,7 @@ import { RoundBtn, Toggle } from '../components/ui';
 
 const TIMES = ['08:00', '12:30', '20:00'];
 
-export function SettingsScreen({ settings, premium, onChange, onBack, onReplayIntro, onReset, onRestored, width }: {
+export function SettingsScreen({ settings, premium, onChange, onBack, onReplayIntro, onReset, onRestored, onAccount, width }: {
   settings: AppSettings;
   premium: boolean;
   onChange: (s: AppSettings) => void;
@@ -24,6 +24,7 @@ export function SettingsScreen({ settings, premium, onChange, onBack, onReplayIn
   onReplayIntro: () => void;
   onReset: () => void;
   onRestored: () => void;
+  onAccount: () => void;
   width: number;
 }) {
   const [restoring, setRestoring] = React.useState(false);
@@ -135,7 +136,10 @@ export function SettingsScreen({ settings, premium, onChange, onBack, onReplayIn
           </Group>
 
           <Group label="ACCOUNT">
-            <Row icon="play" title="Replay intro" first onPress={onReplayIntro}>
+            <Row icon="user" title="Account & backup" first onPress={onAccount}>
+              <Icon name="chevR" size={17} color="#B9B2A0" />
+            </Row>
+            <Row icon="play" title="Replay intro" onPress={onReplayIntro}>
               <Icon name="chevR" size={17} color="#B9B2A0" />
             </Row>
             <Row icon="refresh" title="Reset progress" danger onPress={confirmReset}>

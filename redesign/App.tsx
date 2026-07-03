@@ -12,8 +12,10 @@ import { colors, motion } from './theme';
 import { haptic, setSfxGates, sfx } from './sfx';
 import { Lesson } from './lessons';
 import { bumpDailyGoal, bumpStreak, dailyGoalDone, dailyGoalTarget, effectiveStreak, useAppStore } from './store';
-import { checkPremium, initPurchases } from './monetization';
+import { checkPremium, initPurchases, rcLogIn } from './monetization';
 import { cancelDailyReminder, scheduleDailyReminder } from './reminders';
+import { ensureSignedIn } from './auth';
+import { pullIfFresh, pushProgress } from './sync';
 import { Pager } from './components/Pager';
 import { TabBar } from './components/TabBar';
 import { Onboarding } from './screens/Onboarding';
@@ -26,6 +28,7 @@ import { CardsScreen, LessonIntroSheet } from './screens/Lesson';
 import { QuizScreen } from './screens/Quiz';
 import { CelebrateScreen } from './screens/Celebrate';
 import { SettingsScreen } from './screens/Settings';
+import { AccountScreen } from './screens/Account';
 import { PaywallScreen } from './screens/Paywall';
 
 /* Ayoub's monetization model: lesson 1 free → hard paywall before lesson 2. */
@@ -37,6 +40,7 @@ type Overlay =
   | { t: 'quiz'; lesson: Lesson }
   | { t: 'celebrate'; lesson: Lesson; result: { correct: number; total: number } }
   | { t: 'settings' }
+  | { t: 'account' }
   | { t: 'paywall'; lesson: Lesson };
 
 export default function App() {
@@ -78,6 +82,27 @@ export default function App() {
       .catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready]);
+
+  /* auth: silent anonymous sign-in, tie purchases to the user id,
+     and on a fresh install adopt the cloud backup if one exists */
+  React.useEffect(() => {
+    if (!ready) return;
+    (async () => {
+      const account = await ensureSignedIn();
+      if (!account) return; // offline / not configured — stay local-only
+      rcLogIn(account.id);
+      const cloud = await pullIfFresh(s);
+      if (cloud) setS((p) => ({ ...p, ...cloud }));
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready]);
+
+  /* cloud backup: debounce-push local progress whenever it changes */
+  React.useEffect(() => {
+    if (!ready || !s.onboarded) return;
+    const t = setTimeout(() => { pushProgress(s); }, 1500);
+    return () => clearTimeout(t);
+  }, [ready, s]);
 
   const setTab = (n: number) => {
     setTabRaw(n);
@@ -158,7 +183,8 @@ export default function App() {
       <TabBar tab={tab} onTab={setTab} />
 
       {overlay && (
-        <OverlayHost closing={closing} animated={overlay.t !== 'intro' && overlay.t !== 'settings'}>
+        <OverlayHost closing={closing}
+          animated={overlay.t !== 'intro' && overlay.t !== 'settings' && overlay.t !== 'account'}>
           {overlay.t === 'intro' && (
             <LessonIntroSheet lesson={overlay.lesson} completed={overlay.redo}
               onClose={() => { setOverlay(null); setClosing(false); }}
@@ -185,9 +211,20 @@ export default function App() {
                 openOverlay({ t: 'intro', lesson: target, redo: s.completed.includes(target.id) });
               }} />
           )}
+          {overlay.t === 'account' && (
+            <AccountScreen width={width}
+              onBack={() => { setOverlay(null); setClosing(false); }}
+              onSynced={() => {
+                pushProgress(s);
+                checkPremium().then((owned) => {
+                  if (owned) setS((p) => (p.premium ? p : { ...p, premium: true }));
+                });
+              }} />
+          )}
           {overlay.t === 'settings' && (
             <SettingsScreen settings={s.settings} premium={s.premium} width={width}
               onRestored={() => setS((p) => ({ ...p, premium: true }))}
+              onAccount={() => openOverlay({ t: 'account' })}
               onChange={(settings) => setS((p) => ({ ...p, settings }))}
               onBack={() => { setOverlay(null); setClosing(false); }}
               onReplayIntro={() => {
