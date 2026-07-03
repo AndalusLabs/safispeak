@@ -11,8 +11,9 @@ import Animated, {
 import { colors, motion } from './theme';
 import { haptic, setSfxGates, sfx } from './sfx';
 import { Lesson } from './lessons';
-import { bumpDailyGoal, bumpStreak, dailyGoalDone, effectiveStreak, useAppStore } from './store';
+import { bumpDailyGoal, bumpStreak, dailyGoalDone, dailyGoalTarget, effectiveStreak, useAppStore } from './store';
 import { checkPremium, initPurchases } from './monetization';
+import { cancelDailyReminder, scheduleDailyReminder } from './reminders';
 import { Pager } from './components/Pager';
 import { TabBar } from './components/TabBar';
 import { Onboarding } from './screens/Onboarding';
@@ -55,6 +56,16 @@ export default function App() {
   React.useEffect(() => {
     setSfxGates(s.settings);
   }, [s.settings]);
+
+  /* keep the daily reminder in sync with the settings toggle + time */
+  React.useEffect(() => {
+    if (!ready) return;
+    if (s.settings.reminder) {
+      scheduleDailyReminder(s.settings.remTime);
+    } else {
+      cancelDailyReminder();
+    }
+  }, [ready, s.settings.reminder, s.settings.remTime]);
 
   /* RevenueCat: init once, and re-sync an existing subscription (reinstalls) */
   React.useEffect(() => {
@@ -135,7 +146,7 @@ export default function App() {
       <StatusBar style={overlay?.t === 'paywall' ? 'light' : 'dark'} />
       <Pager index={tab} count={5} onIndex={setTab} width={width}>
         <HomeScreen name={s.name} xp={s.xp} streak={effectiveStreak(s)} completed={s.completed}
-          onNode={onNode} dailyDone={dailyGoalDone(s)}
+          onNode={onNode} dailyDone={dailyGoalDone(s)} dailyTarget={dailyGoalTarget(s)}
           onGoPractice={() => setTab(2)} onSeeAll={() => setTab(1)} />
         <LearnScreen completed={s.completed} onNode={onNode} />
         <PracticeScreen completed={s.completed}
@@ -175,7 +186,8 @@ export default function App() {
               }} />
           )}
           {overlay.t === 'settings' && (
-            <SettingsScreen settings={s.settings} width={width}
+            <SettingsScreen settings={s.settings} premium={s.premium} width={width}
+              onRestored={() => setS((p) => ({ ...p, premium: true }))}
               onChange={(settings) => setS((p) => ({ ...p, settings }))}
               onBack={() => { setOverlay(null); setClosing(false); }}
               onReplayIntro={() => {

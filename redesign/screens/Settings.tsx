@@ -10,19 +10,38 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, font, motion } from '../theme';
 import { haptic, sfx } from '../sfx';
 import { AppSettings } from '../store';
+import { restorePurchases } from '../monetization';
 import Icon, { IconName } from '../components/Icon';
 import { RoundBtn, Toggle } from '../components/ui';
 
 const TIMES = ['08:00', '12:30', '20:00'];
 
-export function SettingsScreen({ settings, onChange, onBack, onReplayIntro, onReset, width }: {
+export function SettingsScreen({ settings, premium, onChange, onBack, onReplayIntro, onReset, onRestored, width }: {
   settings: AppSettings;
+  premium: boolean;
   onChange: (s: AppSettings) => void;
   onBack: () => void;
   onReplayIntro: () => void;
   onReset: () => void;
+  onRestored: () => void;
   width: number;
 }) {
+  const [restoring, setRestoring] = React.useState(false);
+
+  const restore = async () => {
+    if (restoring) return;
+    setRestoring(true);
+    const res = await restorePurchases();
+    setRestoring(false);
+    if (res.ok) {
+      sfx('win');
+      haptic('success');
+      onRestored();
+      Alert.alert('Restore purchases', 'Your subscription is back. Welcome home!');
+    } else if (res.message) {
+      Alert.alert('Restore purchases', res.message);
+    }
+  };
   const insets = useSafeAreaInsets();
   const enter = useSharedValue(width);
   const dx = useSharedValue(0);
@@ -104,6 +123,15 @@ export function SettingsScreen({ settings, onChange, onBack, onReplayIntro, onRe
                 })}
               </View>
             )}
+          </Group>
+
+          <Group label="SUBSCRIPTION">
+            <Row icon="star" title={premium ? 'SafiSpeak Pro · active' : 'Restore purchases'} first
+              onPress={premium ? undefined : restore}>
+              {premium
+                ? <Icon name="check" size={17} color={colors.brand} />
+                : <Text style={styles.restoreHint}>{restoring ? '…' : 'Restore'}</Text>}
+            </Row>
           </Group>
 
           <Group label="ACCOUNT">
@@ -252,6 +280,11 @@ const styles = StyleSheet.create({
     fontFamily: font.extra,
     fontSize: 13.5,
     color: colors.sand600,
+  },
+  restoreHint: {
+    fontFamily: font.extra,
+    fontSize: 13,
+    color: colors.brand,
   },
   foot: {
     textAlign: 'center',

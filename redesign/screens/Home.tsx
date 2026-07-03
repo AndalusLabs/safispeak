@@ -9,7 +9,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, font, radius } from '../theme';
 import { haptic, sfx } from '../sfx';
 import { LESSONS, Lesson, currentUnit } from '../lessons';
-import { DAILY_GOAL_TARGET } from '../store';
 import Icon from '../components/Icon';
 
 const MOSQUE = require('../../assets/images/medina-mosque.png');
@@ -26,13 +25,14 @@ const TIPS = [
   'Replay a finished lesson to make the words stick for good.',
 ];
 
-export function HomeScreen({ name, xp, streak, completed, onNode, dailyDone, onGoPractice, onSeeAll }: {
+export function HomeScreen({ name, xp, streak, completed, onNode, dailyDone, dailyTarget, onGoPractice, onSeeAll }: {
   name: string;
   xp: number;
   streak: number;
   completed: number[];
   onNode: (lesson: Lesson, locked: boolean) => void;
   dailyDone: number;
+  dailyTarget: number;
   onGoPractice: () => void;
   onSeeAll: () => void;
 }) {
@@ -123,10 +123,10 @@ export function HomeScreen({ name, xp, streak, completed, onNode, dailyDone, onG
       <View style={styles.goal}>
         <Image source={LANTERN} style={styles.goalArt} resizeMode="contain" />
         <Text style={styles.goalTitle}>Today’s goal</Text>
-        <Text style={styles.goalSub}>Complete {DAILY_GOAL_TARGET} lessons</Text>
+        <Text style={styles.goalSub}>Complete {dailyTarget} {dailyTarget === 1 ? 'lesson' : 'lessons'}</Text>
         <View style={styles.goalRow}>
           <View style={styles.goalSteps}>
-            {Array.from({ length: DAILY_GOAL_TARGET }, (_, i) => (
+            {Array.from({ length: dailyTarget }, (_, i) => (
               <React.Fragment key={i}>
                 {i > 0 && <View style={[styles.goalLine, i < dailyDone && styles.goalLineOn]} />}
                 <View style={[styles.goalStep, i < dailyDone && styles.goalStepOn]}>
@@ -155,7 +155,7 @@ export function HomeScreen({ name, xp, streak, completed, onNode, dailyDone, onG
         </View>
         <View style={{ flex: 1 }}>
           <Text style={styles.qpTitle}>Quick practice</Text>
-          <Text style={styles.qpSub}>Learn useful expressions</Text>
+          <Text style={styles.qpSub}>Review the words you’ve learned</Text>
           <View style={styles.qpBtn}>
             <Icon name="cards" size={14} color={colors.brand} />
             <Text style={styles.qpBtnText}>Practice now</Text>
@@ -428,7 +428,9 @@ const styles = StyleSheet.create({
   goalSteps: {
     flexDirection: 'row',
     alignItems: 'center',
-    width: 112,
+    flex: 1,
+    maxWidth: 168,
+    marginRight: 10,
   },
   goalStep: {
     width: 30,

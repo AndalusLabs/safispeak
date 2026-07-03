@@ -50,7 +50,12 @@ export const APP_INITIAL: AppState = {
   profile: null,
 };
 
-export const DAILY_GOAL_TARGET = 2;
+/* lessons/day derived from the daily minutes chosen in onboarding
+   (5 min → 1 lesson … 20 min → 4 lessons; default 2) */
+export function dailyGoalTarget(s: AppState): number {
+  const min = s.profile?.dailyMinutes ?? 10;
+  return Math.max(1, Math.min(4, Math.round(min / 5)));
+}
 
 /* dailyGoal after finishing a lesson right now (resets when the day changes) */
 export function bumpDailyGoal(s: AppState): Pick<AppState, 'dailyGoal'> {
