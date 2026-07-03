@@ -49,6 +49,7 @@ export default function App() {
   const [tab, setTabRaw] = React.useState(0);
   const [overlay, setOverlay] = React.useState<Overlay | null>(null);
   const [closing, setClosing] = React.useState(false);
+  const [preSignIn, setPreSignIn] = React.useState(false); // sign-in from onboarding
 
   /* restore persisted tab once the store has loaded */
   React.useEffect(() => {
@@ -154,14 +155,29 @@ export default function App() {
     return (
       <View style={styles.root}>
         <StatusBar style="dark" />
-        <Onboarding onDone={(name, goal, profile) => {
-          sfx('win');
-          haptic('success');
-          setS((p) => ({
-            ...p, onboarded: true, name, goal, profile,
-            settings: { ...p.settings, reminder: profile.reminderChosen },
-          }));
-        }} />
+        <Onboarding
+          onSignIn={() => setPreSignIn(true)}
+          onDone={(name, goal, profile) => {
+            sfx('win');
+            haptic('success');
+            setS((p) => ({
+              ...p, onboarded: true, name, goal, profile,
+              settings: { ...p.settings, reminder: profile.reminderChosen },
+            }));
+          }} />
+        {preSignIn && (
+          <AccountScreen width={width}
+            onBack={() => setPreSignIn(false)}
+            onSynced={async () => {
+              // returning user: adopt their cloud backup and skip onboarding
+              const cloud = await pullIfFresh(s);
+              const owned = await checkPremium();
+              setPreSignIn(false);
+              if (cloud || owned) {
+                setS((p) => ({ ...p, ...(cloud ?? {}), premium: p.premium || owned || !!cloud?.premium }));
+              }
+            }} />
+        )}
       </View>
     );
   }

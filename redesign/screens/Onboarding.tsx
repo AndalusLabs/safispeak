@@ -72,8 +72,9 @@ function toGoal(motivations: string[]): Goal {
   return 'culture';
 }
 
-export function Onboarding({ onDone }: {
+export function Onboarding({ onDone, onSignIn }: {
   onDone: (name: string, goal: Goal, profile: OnboardingProfile) => void;
+  onSignIn: () => void;
 }) {
   const insets = useSafeAreaInsets();
   const [step, setStep] = React.useState<Step>('intro');
@@ -309,6 +310,13 @@ export function Onboarding({ onDone }: {
               {buttonLabel}
             </AppButton>
           </View>
+          {step === 'intro' && (
+            <Pressable onPress={() => { sfx('tap'); haptic('light'); onSignIn(); }} style={styles.signIn} hitSlop={8}>
+              <Text style={styles.signInText}>
+                Already have an account? <Text style={styles.signInLink}>Sign in</Text>
+              </Text>
+            </Pressable>
+          )}
         </View>
       </KeyboardAvoidingView>
     </View>
@@ -648,5 +656,19 @@ const styles = StyleSheet.create({
   },
   btnDisabled: {
     opacity: 0.45,
+  },
+  signIn: {
+    alignItems: 'center',
+    paddingTop: 14,
+  },
+  signInText: {
+    fontFamily: font.semibold,
+    fontSize: 13.5,
+    color: colors.sand600,
+  },
+  signInLink: {
+    fontFamily: font.extra,
+    color: colors.brand,
+    textDecorationLine: 'underline',
   },
 });

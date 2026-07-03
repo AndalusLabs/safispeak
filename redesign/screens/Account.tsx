@@ -94,7 +94,7 @@ export function AccountScreen({ width, onBack, onSynced }: {
       setStage('info');
       sfx('win');
       haptic('success');
-      Alert.alert('Saved!', 'Your progress is now linked to your email.');
+      Alert.alert('Salam!', 'You’re signed in — your progress follows this email everywhere.');
     } else {
       setBusy(false);
       Alert.alert('Verification', res.message);
@@ -153,10 +153,11 @@ export function AccountScreen({ width, onBack, onSynced }: {
             ) : stage === 'info' ? (
               /* anonymous — offer backup */
               <>
-                <Text style={styles.title}>Save your progress</Text>
+                <Text style={styles.title}>Create your account</Text>
                 <Text style={styles.body}>
-                  You’re learning as a guest. Add your email so your lessons,
-                  streak and subscription survive a new phone.
+                  One email, no password — your lessons, streak and subscription
+                  survive any phone. Already have an account? Same email,
+                  same code: you’ll be signed right in.
                 </Text>
                 <TextInput
                   style={styles.input}
