@@ -49,6 +49,26 @@ export function LearnScreen({ completed, onNode }: {
   const unit = currentUnit(completed);
   const unitDone = unit.lessons.filter((l) => completed.includes(l.id)).length;
 
+  /* faint zellige eight-point stars scattered behind the path (subtle —
+     Moroccan feel comes from accents, not kitsch) */
+  const zellige = React.useMemo(() => {
+    const stars: string[] = [];
+    const SP = 132;
+    const r = 19;           // axis-aligned square half-side
+    const d = 27;           // rotated-square point distance (~r·√2)
+    let row = 0;
+    for (let y = 46; y < H - 30; y += SP, row++) {
+      const off = row % 2 ? SP / 2 : 0;
+      for (let x = 34 + off; x <= W - 34; x += SP) {
+        stars.push(
+          `M ${x - r} ${y - r} H ${x + r} V ${y + r} H ${x - r} Z ` +
+          `M ${x} ${y - d} L ${x + d} ${y} L ${x} ${y + d} L ${x - d} ${y} Z`,
+        );
+      }
+    }
+    return stars;
+  }, [H]);
+
   const seg = (a: { x: number; y: number }, b: { x: number; y: number }) =>
     `M ${a.x} ${a.y} C ${a.x} ${a.y + GAP * 0.55}, ${b.x} ${b.y - GAP * 0.55}, ${b.x} ${b.y}`;
 
@@ -69,6 +89,10 @@ export function LearnScreen({ completed, onNode }: {
       {/* serpentine path with unit headers */}
       <View style={[styles.path, { height: H }]}>
         <Svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} style={StyleSheet.absoluteFillObject}>
+          {zellige.map((path, i) => (
+            <SvgPath key={`z${i}`} d={path} fill="none"
+              stroke={colors.brand} strokeOpacity={0.07} strokeWidth={1.5} />
+          ))}
           {nodes.slice(0, -1).map((p, i) => {
             const next = nodes[i + 1];
             if (p.unitId !== next.unitId) return null;

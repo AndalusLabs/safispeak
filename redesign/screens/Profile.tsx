@@ -1,39 +1,51 @@
-/* SafiSpeak redesign — Profile tab: avatar, streak week, stats, achievements. */
+/* SafiSpeak redesign — Profile tab: avatar, account status, streak week,
+   achievements. (The learning stats live in the Progress tab.) */
 
 import React from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, font } from '../theme';
+import { haptic, sfx } from '../sfx';
+import { Account, getAccount } from '../auth';
+import { supabase } from '../supabase';
 import Icon, { IconName } from '../components/Icon';
 import Safi from '../components/Safi';
 import { RoundBtn } from '../components/ui';
 
 const WEEK = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
-export function ProfileScreen({ name, xp, streak, completed, accuracy, onSettings }: {
+export function ProfileScreen({ name, xp, streak, completed, accuracy, onSettings, onAccount }: {
   name: string;
   xp: number;
   streak: number;
   completed: number[];
   accuracy: number;
   onSettings: () => void;
+  onAccount: () => void;
 }) {
   const insets = useSafeAreaInsets();
   const wordsLearned = completed.length * 3;
   const todayIdx = (new Date().getDay() + 6) % 7; // Monday = 0
 
-  const stats: { icon: IconName; n: string | number; k: string; c: string; bg: string }[] = [
-    { icon: 'star', n: xp, k: 'Total XP', c: colors.goldText, bg: colors.goldTint },
-    { icon: 'flame', n: streak, k: 'Day streak', c: colors.flame, bg: colors.flameTint },
-    { icon: 'book', n: wordsLearned, k: 'Words learned', c: colors.greenText, bg: colors.greenTint },
-    { icon: 'target', n: `${accuracy}%`, k: 'Accuracy', c: colors.blueText, bg: colors.blueTint },
-  ];
+  /* account status card — refreshes whenever the auth session changes */
+  const [account, setAccount] = React.useState<Account | null>(null);
+  React.useEffect(() => {
+    getAccount().then(setAccount);
+    if (!supabase) return;
+    const { data } = supabase.auth.onAuthStateChange(() => {
+      getAccount().then(setAccount);
+    });
+    return () => data.subscription.unsubscribe();
+  }, []);
+  const synced = !!account && !account.anonymous && !!account.email;
 
   const badges: { icon: IconName; t: string; got: boolean }[] = [
     { icon: 'play', t: 'First steps', got: completed.length > 0 },
     { icon: 'flame', t: '3-day flame', got: streak >= 3 },
     { icon: 'book', t: 'Word collector', got: wordsLearned >= 9 },
     { icon: 'target', t: 'Sharpshooter', got: accuracy >= 90 },
+    { icon: 'check', t: 'Unit finisher', got: completed.length >= 5 },
+    { icon: 'star', t: 'Week warrior', got: streak >= 7 },
   ];
 
   return (
@@ -75,18 +87,35 @@ export function ProfileScreen({ name, xp, streak, completed, accuracy, onSetting
         </View>
       </View>
 
-      {/* 2×2 stat cards */}
-      <View style={styles.statGrid}>
-        {stats.map((s) => (
-          <View key={s.k} style={styles.statCard}>
-            <View style={[styles.statIcon, { backgroundColor: s.bg }]}>
-              <Icon name={s.icon} size={19} color={s.c} />
-            </View>
-            <Text style={styles.statN}>{s.n}</Text>
-            <Text style={styles.statK}>{s.k}</Text>
+      {/* account status */}
+      <Pressable style={[styles.card, styles.accountCard, synced && styles.accountCardSynced]}
+        onPress={() => { sfx('tap'); haptic('light'); onAccount(); }}>
+        <View style={[styles.accountIcon, synced && { backgroundColor: colors.greenTint }]}>
+          <Icon name={synced ? 'check' : 'user'} size={20} color={synced ? colors.brand : colors.goldText} />
+        </View>
+        <View style={{ flex: 1 }}>
+          {synced ? (
+            <>
+              <Text style={styles.accountTitle}>Progress backed up</Text>
+              <Text style={styles.accountSub} numberOfLines={1}>{account?.email}</Text>
+            </>
+          ) : (
+            <>
+              <Text style={styles.accountTitle}>You’re learning as a guest</Text>
+              <Text style={styles.accountSub}>Create a free account to save your progress</Text>
+            </>
+          )}
+        </View>
+        {synced ? (
+          <View style={styles.syncedChip}>
+            <Text style={styles.syncedChipText}>Synced</Text>
           </View>
-        ))}
-      </View>
+        ) : (
+          <View style={styles.accountBtn}>
+            <Text style={styles.accountBtnText}>Create account</Text>
+          </View>
+        )}
+      </Pressable>
 
       {/* achievements */}
       <View style={styles.card}>
@@ -199,45 +228,55 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.sand600,
   },
-  statGrid: {
+  accountCard: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
+    alignItems: 'center',
     gap: 12,
-    marginHorizontal: 16,
-    marginBottom: 14,
+    backgroundColor: colors.goldTint,
   },
-  statCard: {
-    width: '47%',
-    flexGrow: 1,
+  accountCardSynced: {
     backgroundColor: colors.card,
-    borderRadius: 20,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    gap: 3,
-    shadowColor: '#1F2A37',
-    shadowOpacity: 0.07,
-    shadowRadius: 11,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 4,
   },
-  statIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
+  accountIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.75)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 4,
   },
-  statN: {
+  accountTitle: {
     fontFamily: font.extra,
-    fontSize: 24,
-    lineHeight: 26,
+    fontSize: 14.5,
     color: colors.ink900,
   },
-  statK: {
-    fontFamily: font.bold,
-    fontSize: 12.5,
+  accountSub: {
+    fontFamily: font.semibold,
+    fontSize: 12,
     color: colors.sand600,
+    marginTop: 1,
+  },
+  accountBtn: {
+    backgroundColor: colors.brand,
+    paddingVertical: 9,
+    paddingHorizontal: 13,
+    borderRadius: 999,
+  },
+  accountBtnText: {
+    fontFamily: font.extra,
+    fontSize: 12,
+    color: '#fff',
+  },
+  syncedChip: {
+    backgroundColor: colors.greenTint,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 999,
+  },
+  syncedChipText: {
+    fontFamily: font.extra,
+    fontSize: 12,
+    color: colors.greenText,
   },
   badges: {
     flexDirection: 'row',

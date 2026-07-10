@@ -194,7 +194,8 @@ export default function App() {
           onXp={(n) => setS((p) => ({ ...p, ...bumpStreak(p), xp: p.xp + n }))} />
         <ProgressScreen xp={s.xp} streak={effectiveStreak(s)} completed={s.completed} accuracy={accuracy} />
         <ProfileScreen name={s.name} xp={s.xp} streak={effectiveStreak(s)} completed={s.completed}
-          accuracy={accuracy} onSettings={() => openOverlay({ t: 'settings' })} />
+          accuracy={accuracy} onSettings={() => openOverlay({ t: 'settings' })}
+          onAccount={() => openOverlay({ t: 'account' })} />
       </Pager>
       <TabBar tab={tab} onTab={setTab} />
 

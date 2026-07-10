@@ -132,7 +132,7 @@ export function Onboarding({ onDone, onSignIn }: {
   };
 
   const buttonLabel =
-    step === 'intro' ? 'NEXT'
+    step === 'intro' ? 'GET STARTED'
     : step === 'questions-intro' ? "LET'S GO"
     : step === 'first-lesson' ? 'START LESSON'
     : 'CONTINUE';
@@ -311,11 +311,14 @@ export function Onboarding({ onDone, onSignIn }: {
             </AppButton>
           </View>
           {step === 'intro' && (
-            <Pressable onPress={() => { sfx('tap'); haptic('light'); onSignIn(); }} style={styles.signIn} hitSlop={8}>
-              <Text style={styles.signInText}>
-                Already have an account? <Text style={styles.signInLink}>Sign in</Text>
-              </Text>
-            </Pressable>
+            <>
+              {/* like the original AccountPromptScreen: explicit account choice.
+                  Create-account and sign-in are the same passwordless flow. */}
+              <Pressable onPress={() => { sfx('tap'); haptic('light'); onSignIn(); }} style={styles.accountBtn}>
+                <Text style={styles.accountBtnText}>Create account / Sign in</Text>
+              </Pressable>
+              <Text style={styles.guestHint}>Get started to continue as a guest — you can create an account anytime</Text>
+            </>
           )}
         </View>
       </KeyboardAvoidingView>
@@ -657,18 +660,26 @@ const styles = StyleSheet.create({
   btnDisabled: {
     opacity: 0.45,
   },
-  signIn: {
+  accountBtn: {
+    alignSelf: 'stretch',
     alignItems: 'center',
-    paddingTop: 14,
+    marginTop: 12,
+    paddingVertical: 15,
+    borderRadius: 999,
+    backgroundColor: colors.card,
+    borderWidth: 2,
+    borderColor: colors.brand,
   },
-  signInText: {
-    fontFamily: font.semibold,
-    fontSize: 13.5,
-    color: colors.sand600,
-  },
-  signInLink: {
+  accountBtnText: {
     fontFamily: font.extra,
+    fontSize: 15,
     color: colors.brand,
-    textDecorationLine: 'underline',
+  },
+  guestHint: {
+    fontFamily: font.semibold,
+    fontSize: 12,
+    color: colors.sand600,
+    textAlign: 'center',
+    marginTop: 10,
   },
 });
